@@ -924,7 +924,15 @@ public class PythonSession {
       }
     }
 
-    return m_pythonEnvCheckResults.get( key ).length() < 5;
+    String envCheckResults = m_pythonEnvCheckResults.get(key);
+    boolean hasErrors = (envCheckResults.contains("is not available") &&
+        !envCheckResults.contains("Apache Arrow support not available"))
+        || envCheckResults.contains("does not meet")
+        || envCheckResults.contains("problem occurred")
+        || envCheckResults.contains("did not import correctly")
+        || (envCheckResults.contains("Library ") && envCheckResults.contains("is not available"));
+    
+    return !hasErrors;
   }
 
   /**
