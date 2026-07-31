@@ -104,117 +104,117 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
   /**
    * The script to execute
    */
-  @HopMetadataProperty
-  protected String m_script = BaseMessages
+  @HopMetadataProperty(key = "script")
+  protected String script = BaseMessages
       .getString(PKG, "CPythonScriptExecutorMeta.InitialScriptText");
 
   /**
    * User-supplied path to python executable. If not specified, then we use the default python in
    * the path
    */
-  @HopMetadataProperty
-  protected String m_pythonCommand = "";
+  @HopMetadataProperty(key = "pythonCommand")
+  protected String pythonCommand = "";
 
   /**
    * Optional entries for the PATH, required so that python will execute correctly. Used when user
    * has specified path to python executable. E.g. under windows, Anaconda requires Library/bin to
    * be in the PATH as well as the python executable.
    */
-  @HopMetadataProperty
-  protected String m_pyPathEntries = "";
+  @HopMetadataProperty(key = "pyPathEntries")
+  protected String pyPathEntries = "";
 
   /**
    * An optional ID for the python server. This plus the path to the executable uniquely identifies
    * a non-default server. Can be used to share a given server instance among several clients, or to
    * ensure that a given client has a dedicated server.
    */
-  @HopMetadataProperty
-  protected String m_serverID = "";
+  @HopMetadataProperty(key = "serverID")
+  protected String serverID = "";
 
   /**
    * Whether to load a script at runtime
    */
-  @HopMetadataProperty
-  protected boolean m_loadScriptAtRuntime;
+  @HopMetadataProperty(key = "loadScriptAtRuntime")
+  protected boolean loadScriptAtRuntime;
 
   /**
    * The script to load (if loading at runtime)
    */
-  @HopMetadataProperty
-  protected String m_loadScriptFile = ""; //$NON-NLS-1$
+  @HopMetadataProperty(key = "loadScriptFile")
+  protected String loadScriptFile = ""; //$NON-NLS-1$
 
   /**
    * The name(s) of the data frames to create in python - one corresponding to each incoming row
    * set
    */
-  @HopMetadataProperty
-  protected List<String> m_frameNames = new ArrayList<>();
+  @HopMetadataProperty(key = "frameNames")
+  protected List<String> frameNames = new ArrayList<>();
 
   /**
    * List of variables to get from python. This should hold exactly one variable in the case of
    * extracting a data frame. There can be more than one if all variables are either strings or
    * images
    */
-  @HopMetadataProperty
-  protected List<String> m_pyVarsToGet = new ArrayList<>();
+  @HopMetadataProperty(key = "pyVarsToGet")
+  protected List<String> pyVarsToGet = new ArrayList<>();
 
   /**
    * Whether to include the pandas frame row index as an output field (when retrieving a single data
    * frame from python as output.
    */
-  @HopMetadataProperty
-  protected boolean m_includeRowIndex;
+  @HopMetadataProperty(key = "includeRowIndex")
+  protected boolean includeRowIndex;
 
   /**
    * Whether to continue processing if one or more requested variables are not set in the python
    * environment after executing the script.
    */
-  @HopMetadataProperty
-  protected boolean m_continueOnUnsetVars;
+  @HopMetadataProperty(key = "continueOnUnsetVars")
+  protected boolean continueOnUnsetVars;
 
   /**
    * Default Rows to Process
    */
-  @HopMetadataProperty
-  protected String m_rowsToProcess = DEFAULT_ROWS_TO_PROCESS;
+  @HopMetadataProperty(key = "rowsToProcess")
+  protected String rowsToProcess = DEFAULT_ROWS_TO_PROCESS;
 
   /**
    * Number of rows to process if <code>rows to process is batch </code>
    */
-  @HopMetadataProperty
-  protected String m_rowsToProcessSize = "";
+  @HopMetadataProperty(key = "rowsToProcessSize")
+  protected String rowsToProcessSize = "";
 
   /**
    * True if reservoir sampling is to be used, in which case the batch size is the reservoir size
    */
-  @HopMetadataProperty
-  protected boolean m_doingReservoirSampling = false;
+  @HopMetadataProperty(key = "doingReservoirSampling")
+  protected boolean doingReservoirSampling = false;
 
   /**
    * If reservoir sampling is enabled, this value is used to define the sampling size
    */
-  @HopMetadataProperty
-  protected String m_reservoirSamplingSize = "";
+  @HopMetadataProperty(key = "reservoirSamplingSize")
+  protected String reservoirSamplingSize = "";
 
   /**
    * Random seed for reservoir sampling
    */
-  @HopMetadataProperty
-  protected String m_seed = "1"; //$NON-NLS-1$
+  @HopMetadataProperty(key = "seed")
+  protected String seed = "1"; //$NON-NLS-1$
 
   /**
    * True if input stream values should be copied to the output stream. Only applies when output is
    * a single pandas data frame; furthermore, number of output rows must match number of input
    * rows.
    */
-  @HopMetadataProperty
-  protected boolean m_includeInputAsOutput = false;
+  @HopMetadataProperty(key = "includeInputAsOutput")
+  protected boolean includeInputAsOutput = false;
 
   /**
    * True if Apache Arrow should be used for data transfer (when available)
    */
-  @HopMetadataProperty
-  protected boolean m_useArrow = true;
+  @HopMetadataProperty(key = "useArrow")
+  protected boolean useArrow = true;
 
   /**
    * Outgoing fields
@@ -222,27 +222,27 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
   protected IRowMeta m_outputFields;
 
   public void setPythonCommand(String pythonCommand) {
-    m_pythonCommand = pythonCommand;
+    this.pythonCommand = pythonCommand;
   }
 
   public String getPythonCommand() {
-    return m_pythonCommand;
+    return pythonCommand;
   }
 
   public void setPyPathEntries(String pyPathEntries) {
-    m_pyPathEntries = pyPathEntries;
+    this.pyPathEntries = pyPathEntries;
   }
 
   public String getPyPathEntries() {
-    return m_pyPathEntries;
+    return pyPathEntries;
   }
 
-  public void setPyServerID(String pyServerID) {
-    m_serverID = pyServerID;
+  public void setServerID(String pyServerID) {
+    this.serverID = pyServerID;
   }
 
-  public String getPytServerID() {
-    return m_serverID;
+  public String getServerID() {
+    return serverID;
   }
 
   /**
@@ -264,19 +264,19 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
   }
 
   public void setRowsToProcess(String s) {
-    m_rowsToProcess = s;
+    rowsToProcess = s;
   }
 
   public String getRowsToProcess() {
-    return m_rowsToProcess;
+    return rowsToProcess;
   }
 
   public void setRowsToProcessSize(String s) {
-    m_rowsToProcessSize = s;
+    rowsToProcessSize = s;
   }
 
   public String getRowsToProcessSize() {
-    return m_rowsToProcessSize;
+    return rowsToProcessSize;
   }
 
   /**
@@ -286,7 +286,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @param r true if reservoir sampling is to be used
    */
   public void setDoingReservoirSampling(boolean r) {
-    m_doingReservoirSampling = r;
+    doingReservoirSampling = r;
   }
 
   /**
@@ -295,8 +295,8 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @return true if reservoir sampling is to be used in the single input case.
    */
-  public boolean getDoingReservoirSampling() {
-    return m_doingReservoirSampling;
+  public boolean isDoingReservoirSampling() {
+    return doingReservoirSampling;
   }
 
   /**
@@ -305,7 +305,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @param s the size of the reservoir
    */
   public void setReservoirSamplingSize(String s) {
-    m_reservoirSamplingSize = s;
+    reservoirSamplingSize = s;
   }
 
   /**
@@ -314,7 +314,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @return the size of the reservoir
    */
   public String getReservoirSamplingSize() {
-    return m_reservoirSamplingSize;
+    return reservoirSamplingSize;
   }
 
   /**
@@ -322,8 +322,8 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @param seed the random seed to use when reservoir sampling
    */
-  public void setRandomSeed(String seed) {
-    m_seed = seed;
+  public void setSeed(String seed) {
+    this.seed = seed;
   }
 
   /**
@@ -331,15 +331,15 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @return the random seed to use when reservoir sampling
    */
-  public String getRandomSeed() {
-    return m_seed;
+  public String getSeed() {
+    return seed;
   }
 
   /**
    * Sets whether the step should or not include input values in the output stream
    */
   public void setIncludeInputAsOutput(boolean s) {
-    m_includeInputAsOutput = s;
+    includeInputAsOutput = s;
   }
 
   /**
@@ -347,8 +347,8 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @return true if step should include input values in output
    */
-  public boolean getIncludeInputAsOutput() {
-    return m_includeInputAsOutput;
+  public boolean isIncludeInputAsOutput() {
+    return includeInputAsOutput;
   }
 
   /**
@@ -357,7 +357,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @param useArrow true to use Arrow when available
    */
   public void setUseArrow(boolean useArrow) {
-    m_useArrow = useArrow;
+    this.useArrow = useArrow;
   }
 
   /**
@@ -365,8 +365,8 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @return true if Arrow should be used when available
    */
-  public boolean getUseArrow() {
-    return m_useArrow;
+  public boolean isUseArrow() {
+    return useArrow;
   }
 
   /**
@@ -376,7 +376,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @param l true if a script is to be loaded at runtime
    */
   public void setLoadScriptAtRuntime(boolean l) {
-    m_loadScriptAtRuntime = l;
+    loadScriptAtRuntime = l;
   }
 
   /**
@@ -385,8 +385,8 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @return true if a script is to be loaded at runtime
    */
-  public boolean getLoadScriptAtRuntime() {
-    return m_loadScriptAtRuntime;
+  public boolean isLoadScriptAtRuntime() {
+    return loadScriptAtRuntime;
   }
 
   /**
@@ -394,17 +394,19 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @param scriptFile the script file to load at runtime
    */
-  public void setScriptToLoad(String scriptFile) {
-    m_loadScriptFile = scriptFile;
+  public void setLoadScriptFile(String scriptFile) {
+    loadScriptFile = scriptFile;
   }
+  
+  
 
   /**
    * Get the path to the script to load at runtime (if loading at runtime)
    *
    * @return the script file to load at runtime
    */
-  public String getScriptToLoad() {
-    return m_loadScriptFile;
+  public String getLoadScriptFile() {
+    return loadScriptFile;
   }
 
   /**
@@ -413,7 +415,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @param script the script to execute
    */
   public void setScript(String script) {
-    m_script = script;
+    this.script = script;
   }
 
   /**
@@ -422,7 +424,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @return the script to execute
    */
   public String getScript() {
-    return m_script;
+    return script;
   }
 
   /**
@@ -432,7 +434,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @param names a list of frame names to use - one for each incoming row set
    */
   public void setFrameNames(List<String> names) {
-    m_frameNames = names;
+    frameNames = names;
   }
 
   /**
@@ -442,7 +444,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @return a list of frame names to use - one for each incoming row set
    */
   public List<String> getFrameNames() {
-    return m_frameNames;
+    return frameNames;
   }
 
   /**
@@ -460,8 +462,12 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @param pyVars the list of python variables to retrieve
    */
-  public void setPythonVariablesToGet(List<String> pyVars) {
-    m_pyVarsToGet = pyVars;
+//  public void setPythonVariablesToGet(List<String> pyVars) {
+//    pyVarsToGet = pyVars;
+//  }
+  
+  public void setPyVarsToGet(List<String> pyVars) {
+	  pyVarsToGet = pyVars;
   }
 
   /**
@@ -479,8 +485,8 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @return the list of python variables to retrieve
    */
-  public List<String> getPythonVariablesToGet() {
-    return m_pyVarsToGet;
+  public List<String> getPyVarsToGet() {
+    return pyVarsToGet;
   }
 
   /**
@@ -491,10 +497,13 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @param includeFrameRowIndexAsOutputField true to include the frame row index as an output
    * field
    */
-  public void setIncludeFrameRowIndexAsOutputField(boolean includeFrameRowIndexAsOutputField) {
-    m_includeRowIndex = includeFrameRowIndexAsOutputField;
-  }
+//  public void setIncludeFrameRowIndexAsOutputField(boolean includeFrameRowIndexAsOutputField) {
+//    includeRowIndex = includeFrameRowIndexAsOutputField;
+//  }
 
+  public void setIncludeRowIndex(boolean includeFrameRowIndexAsOutputField) {
+    includeRowIndex = includeFrameRowIndexAsOutputField;
+  }
   /**
    * Get whether to include the pandas data frame row index as an output field, in the case where
    * the output of the step is a single pandas data frame. Has no affect if multiple variables are
@@ -502,10 +511,12 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @return true to include the frame row index as an output field
    */
-  public boolean getIncludeFrameRowIndexAsOutputField() {
-    return m_includeRowIndex;
+//  public boolean getIncludeFrameRowIndexAsOutputField() {
+//    return includeRowIndex;
+//  }
+  public boolean isIncludeRowIndex() {
+	    return includeRowIndex;
   }
-
   /**
    * Set whether to continue in the case that one or more user specified variables to retrieve are
    * not set in the python environment after executing the script.
@@ -513,7 +524,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * @param continueOnUnset true to continue processing if there are unset variables
    */
   public void setContinueOnUnsetVars(boolean continueOnUnset) {
-    m_continueOnUnsetVars = continueOnUnset;
+    continueOnUnsetVars = continueOnUnset;
   }
 
   /**
@@ -522,8 +533,8 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    *
    * @return true to continue processing if there are unset variables
    */
-  public boolean getContinueOnUnsetVars() {
-    return m_continueOnUnsetVars;
+  public boolean isContinueOnUnsetVars() {
+    return continueOnUnsetVars;
   }
 
   public IRowMeta determineOutputRowMeta(IRowMeta[] info, IVariables space)
@@ -559,7 +570,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
       // Check across all input fields to see if they are in the output, and
       // whether they are binary storage. If binary storage then copy over the original input value meta
       // (this is because get fields in the dialog just creates new ValueMetas without knowledge of storage type)
-      if (getIncludeInputAsOutput()) {
+      if (isIncludeInputAsOutput()) {
         for (IRowMeta r : info) {
           if (r != null) {
             for (IValueMeta vm : r.getValueMetaList()) {
@@ -578,10 +589,10 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
           numRowMetas++;
         }
       }
-      if (numRowMetas != m_frameNames.size()) {
+      if (numRowMetas != frameNames.size()) {
         throw new HopTransformException(BaseMessages
             .getString(PKG, "CPythonScriptExecutorMeta.Error.IncorrectNumberOfIncomingStreams",
-                m_frameNames.size(),
+                frameNames.size(),
                 numRowMetas));
       }
 
@@ -603,7 +614,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    */
   private void addAllIncomingFieldsToOutput(IRowMeta rowMeta, String transformName,
       IRowMeta[] info) {
-    if (getIncludeInputAsOutput()) {
+    if (isIncludeInputAsOutput()) {
       for (IRowMeta r : info) {
         rowMeta.addRowMeta(r);
       }
@@ -618,7 +629,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    */
   private void addScriptFieldsToOutput(IRowMeta rowMeta, IRowMeta[] info, String transformName,
       IVariables space) throws HopException {
-    if (m_pyVarsToGet.size() == 1) {
+    if (pyVarsToGet.size() == 1) {
       // could be just a single pandas data frame - see if we can determine
       // the fields in this frame...
       IRowMeta scriptRM = determineOutputRowMeta(info, space);
@@ -628,7 +639,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
         rowMeta.addValueMeta(vm);
       }
     } else {
-      for (String varName : m_pyVarsToGet) {
+      for (String varName : pyVarsToGet) {
         // IValueMeta vm = new ValueMeta( varName, IValueMeta.TYPE_STRING );
         IValueMeta vm = ValueMetaFactory.createValueMeta(varName, IValueMeta.TYPE_STRING);
         vm.setOrigin(transformName);
@@ -671,22 +682,22 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
 
   @Override
   public void setDefault() {
-    m_rowsToProcess =
+    rowsToProcess =
         BaseMessages.getString(PKG,
             "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.AllEntry.Label");
-    m_rowsToProcessSize = "";
-    m_doingReservoirSampling = false;
-    m_reservoirSamplingSize = "";
-    m_frameNames = new ArrayList<>();
-    m_continueOnUnsetVars = false;
-    m_pyVarsToGet = new ArrayList<>();
-    m_script = BaseMessages
+    rowsToProcessSize = "";
+    doingReservoirSampling = false;
+    reservoirSamplingSize = "";
+    frameNames = new ArrayList<>();
+    continueOnUnsetVars = false;
+    pyVarsToGet = new ArrayList<>();
+    script = BaseMessages
         .getString(PKG, "CPythonScriptExecutorMeta.InitialScriptText"); //$NON-NLS-1$
   }
 
   protected String varListToString() {
     StringBuilder b = new StringBuilder();
-    for (String v : m_pyVarsToGet) {
+    for (String v : pyVarsToGet) {
       if (!org.apache.hop.core.util.Utils.isEmpty(v.trim())) {
         b.append(v.trim()).append(",");
       }
@@ -700,11 +711,11 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
   }
 
   protected void stringToVarList(String list) {
-    m_pyVarsToGet.clear();
+    pyVarsToGet.clear();
     String[] vars = list.split(",");
     for (String v : vars) {
       if (!org.apache.hop.core.util.Utils.isEmpty(v.trim())) {
-        m_pyVarsToGet.add(v.trim());
+        pyVarsToGet.add(v.trim());
       }
     }
   }
@@ -715,29 +726,29 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
 
     buff.append(XmlHandler.addTagValue(PYTHON_COMMAND, getPythonCommand()));
     buff.append(XmlHandler.addTagValue(PYTHON_PATH_ENTRIES, getPyPathEntries()));
-    buff.append(XmlHandler.addTagValue(PYTHON_SERVER_ID, getPytServerID()));
+    buff.append(XmlHandler.addTagValue(PYTHON_SERVER_ID, getServerID()));
     buff.append(XmlHandler.addTagValue(ROWS_TO_PROCESS_TAG, getRowsToProcess()));
     buff.append(XmlHandler.addTagValue(ROWS_TO_PROCESS_SIZE_TAG, getRowsToProcessSize()));
-    buff.append(XmlHandler.addTagValue(RESERVOIR_SAMPLING_TAG, getDoingReservoirSampling()));
+    buff.append(XmlHandler.addTagValue(RESERVOIR_SAMPLING_TAG, isDoingReservoirSampling()));
     buff.append(XmlHandler.addTagValue(RESERVOIR_SAMPLING_SIZE_TAG, getReservoirSamplingSize()));
-    buff.append(XmlHandler.addTagValue(RESERVOIR_SAMPLING_SEED_TAG, getRandomSeed()));
-    buff.append(XmlHandler.addTagValue(INCLUDE_INPUT_AS_OUTPUT_TAG, getIncludeInputAsOutput()));
+    buff.append(XmlHandler.addTagValue(RESERVOIR_SAMPLING_SEED_TAG, getSeed()));
+    buff.append(XmlHandler.addTagValue(INCLUDE_INPUT_AS_OUTPUT_TAG, isIncludeInputAsOutput()));
     buff.append(XmlHandler.addTagValue(SCRIPT_TAG, getScript()));
-    buff.append(XmlHandler.addTagValue(LOAD_SCRIPT_AT_RUNTIME_TAG, getLoadScriptAtRuntime()));
-    buff.append(XmlHandler.addTagValue(SCRIPT_TO_LOAD_TAG, getScriptToLoad()));
-    buff.append(XmlHandler.addTagValue(CONTINUE_ON_UNSET_VARS_TAG, getContinueOnUnsetVars()));
+    buff.append(XmlHandler.addTagValue(LOAD_SCRIPT_AT_RUNTIME_TAG, isLoadScriptAtRuntime()));
+    buff.append(XmlHandler.addTagValue(SCRIPT_TO_LOAD_TAG, getLoadScriptFile()));
+    buff.append(XmlHandler.addTagValue(CONTINUE_ON_UNSET_VARS_TAG, isContinueOnUnsetVars()));
     buff.append(XmlHandler.addTagValue(PY_VARS_TO_GET_TAG, varListToString()));
     buff.append(
         XmlHandler.addTagValue(INCLUDE_FRAME_ROW_INDEX_AS_OUTPUT_FIELD_TAG,
-            getIncludeFrameRowIndexAsOutputField()));
+            isIncludeRowIndex()));
 
     // names of the frames to push into python
     buff.append("   " + XmlHandler.openTag(FRAME_NAMES_TAG)
         + Const.CR); //$NON-NLS-1$
-    for (int i = 0; i < m_frameNames.size(); i++) {
+    for (int i = 0; i < frameNames.size(); i++) {
       buff.append(
           "    " + XmlHandler
-              .addTagValue(SINGLE_FRAME_NAME_PREFIX_TAG + i, m_frameNames.get(i))); //$NON-NLS-1$
+              .addTagValue(SINGLE_FRAME_NAME_PREFIX_TAG + i, frameNames.get(i))); //$NON-NLS-1$
     }
     buff.append("    " + XmlHandler.closeTag(FRAME_NAMES_TAG)
         + Const.CR); //$NON-NLS-1$
@@ -786,7 +797,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
     String pyPathE = XmlHandler.getTagValue(transformNode, PYTHON_PATH_ENTRIES);
     setPyPathEntries(pyPathE == null ? "" : pyPathE);
     String pyServerID = XmlHandler.getTagValue(transformNode, PYTHON_SERVER_ID);
-    setPyServerID(pyServerID == null ? "" : pyServerID);
+    setServerID(pyServerID == null ? "" : pyServerID);
 
     String rowsToProcess = XmlHandler.getTagValue(transformNode, ROWS_TO_PROCESS_TAG);
     setRowsToProcess(rowsToProcess == null ? "" : rowsToProcess);
@@ -798,7 +809,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
     String reservoirSamplingSize = XmlHandler
         .getTagValue(transformNode, RESERVOIR_SAMPLING_SIZE_TAG);
     setReservoirSamplingSize(reservoirSamplingSize == null ? "" : reservoirSamplingSize);
-    setRandomSeed(XmlHandler.getTagValue(transformNode, RESERVOIR_SAMPLING_SEED_TAG));
+    setSeed(XmlHandler.getTagValue(transformNode, RESERVOIR_SAMPLING_SEED_TAG));
     String includeInputAsOutput = XmlHandler
         .getTagValue(transformNode, INCLUDE_INPUT_AS_OUTPUT_TAG);
     if (!org.apache.hop.core.util.Utils.isEmpty(includeInputAsOutput)) {
@@ -807,7 +818,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
     String includeFrameRowIndex = XmlHandler
         .getTagValue(transformNode, INCLUDE_FRAME_ROW_INDEX_AS_OUTPUT_FIELD_TAG);
     if (!org.apache.hop.core.util.Utils.isEmpty(includeFrameRowIndex)) {
-      setIncludeFrameRowIndexAsOutputField(includeFrameRowIndex.equalsIgnoreCase("Y"));
+      setIncludeRowIndex(includeFrameRowIndex.equalsIgnoreCase("Y"));
     }
 
     setScript(XmlHandler.getTagValue(transformNode, SCRIPT_TAG));
@@ -816,7 +827,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
     if (!org.apache.hop.core.util.Utils.isEmpty(loadScript)) {
       setLoadScriptAtRuntime(loadScript.equalsIgnoreCase("Y")); //$NON-NLS-1$
     }
-    setScriptToLoad(XmlHandler.getTagValue(transformNode, SCRIPT_TO_LOAD_TAG));
+    setLoadScriptFile(XmlHandler.getTagValue(transformNode, SCRIPT_TO_LOAD_TAG));
 
     String continueOnUnset = XmlHandler.getTagValue(transformNode, CONTINUE_ON_UNSET_VARS_TAG);
     if (!org.apache.hop.core.util.Utils.isEmpty(continueOnUnset)) {
@@ -835,7 +846,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
       int i = 0;
       while ((frameNode = XmlHandler.getSubNode(frameNameFields, SINGLE_FRAME_NAME_PREFIX_TAG + i))
           != null) {
-        m_frameNames.add(XmlHandler.getNodeValue(frameNode));
+        frameNames.add(XmlHandler.getNodeValue(frameNode));
         i++;
       }
     }
@@ -903,7 +914,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
       ioMeta.setInputDynamic(false);
       ioMeta.setOutputDynamic(false);
 
-      int numExpectedStreams = m_frameNames.size();
+      int numExpectedStreams = frameNames.size();
       for (int i = 0; i < numExpectedStreams; i++) {
         ioMeta.addStream(
             new Stream(StreamType.INFO, null, "Input to pandas frame " + (i + 1),

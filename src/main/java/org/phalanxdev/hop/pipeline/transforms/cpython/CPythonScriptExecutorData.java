@@ -55,6 +55,8 @@ import org.phalanxdev.hop.pipeline.transforms.reservoirsampling.ReservoirSamplin
 import org.phalanxdev.python.PythonSession;
 import org.phalanxdev.python.SessionException;
 
+
+
 /**
  * Data class for the CPythonScriptExecutor step
  *
@@ -491,11 +493,11 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
       PythonSession.RowMetaAndRows outputMeta = null;
       PythonSession session = null;
       try {
-        String varToGet = vars.resolve( cPythonScriptExecutorMeta.getPythonVariablesToGet().get( 0 ) );
+        String varToGet = vars.resolve( cPythonScriptExecutorMeta.getPyVarsToGet().get( 0 ) );
 
         String script = cPythonScriptExecutorMeta.getScript();
-        if ( cPythonScriptExecutorMeta.getLoadScriptAtRuntime() ) {
-          String fileName = vars.resolve( cPythonScriptExecutorMeta.getScriptToLoad() );
+        if ( cPythonScriptExecutorMeta.isLoadScriptAtRuntime() ) {
+          String fileName = vars.resolve( cPythonScriptExecutorMeta.getLoadScriptFile() );
           if ( org.apache.hop.core.util.Utils.isEmpty( fileName ) ) {
             throw new HopException(
                 BaseMessages.getString( PKG, "CPythonScriptExecutorData.Error.ScriptFileDoesNotExist", fileName ) );
@@ -522,7 +524,7 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 
         session =
             acquirePySession( requester, cPythonScriptExecutorMeta.getPythonCommand(),
-                cPythonScriptExecutorMeta.getPytServerID(), log, vars );
+                cPythonScriptExecutorMeta.getServerID(), log, vars );
 
         List<List<Object[]>> randomRows = new ArrayList<List<Object[]>>();
         if ( inputMetas != null ) {
@@ -552,7 +554,7 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
               result =
               // Use the new Arrow-enabled method which automatically falls back to CSV if needed
               session.rowsFromPythonDataFrameWithArrow( varToGet,
-                  cPythonScriptExecutorMeta.getIncludeFrameRowIndexAsOutputField() );
+                  cPythonScriptExecutorMeta.isIncludeRowIndex() );
           return result;
         } else {
           // this variable is some other type
@@ -570,7 +572,7 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
         throw new HopException( ex );
       } finally {
         releasePySession( requester, cPythonScriptExecutorMeta.getPythonCommand(),
-            cPythonScriptExecutorMeta.getPytServerID(), vars );
+            cPythonScriptExecutorMeta.getServerID(), vars );
       }
     }
   }

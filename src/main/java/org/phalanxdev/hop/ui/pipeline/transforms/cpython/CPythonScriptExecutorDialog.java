@@ -842,11 +842,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
       //reset the other controllers
       wbReservoirSampling.setEnabled( true );
-      wbReservoirSampling.setSelection( m_originalMeta.getDoingReservoirSampling() );
+      wbReservoirSampling.setSelection( m_originalMeta.isDoingReservoirSampling() );
       wtvReservoirSamplingSize.setEnabled( wbReservoirSampling.getSelection() );
       setItemText( wtvReservoirSamplingSize, m_originalMeta.getReservoirSamplingSize() );
-      wtvRandomSeed.setEnabled( m_originalMeta.getDoingReservoirSampling() );
-      wtvRandomSeed.setText( m_originalMeta.getRandomSeed() == null ? "" : m_originalMeta.getRandomSeed() );
+      wtvRandomSeed.setEnabled( m_originalMeta.isDoingReservoirSampling() );
+      wtvRandomSeed.setText( m_originalMeta.getSeed() == null ? "" : m_originalMeta.getSeed() );
     } else if ( wcvRowsToProcessValue.equals( BaseMessages
         .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.RowByRowEntry.Label" ) ) ) {
       wtvRowsToProcessSize.setEnabled( false );
@@ -854,11 +854,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
       //reset the other controllers
       wbReservoirSampling.setEnabled( true );
-      wbReservoirSampling.setSelection( m_originalMeta.getDoingReservoirSampling() );
+      wbReservoirSampling.setSelection( m_originalMeta.isDoingReservoirSampling() );
       wtvReservoirSamplingSize.setEnabled( wbReservoirSampling.getSelection() );
       setItemText( wtvReservoirSamplingSize, m_originalMeta.getReservoirSamplingSize() );
-      wtvRandomSeed.setEnabled( m_originalMeta.getDoingReservoirSampling() );
-      setItemText( wtvRandomSeed, m_originalMeta.getRandomSeed() );
+      wtvRandomSeed.setEnabled( m_originalMeta.isDoingReservoirSampling() );
+      setItemText( wtvRandomSeed, m_originalMeta.getSeed() );
     }
   }
 
@@ -957,19 +957,19 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   protected void getData( CPythonScriptExecutorMeta meta ) {
     wcvRowsToProcess.setText( meta.getRowsToProcess() );
     setItemText( wtvRowsToProcessSize, meta.getRowsToProcessSize() );
-    wbReservoirSampling.setSelection( meta.getDoingReservoirSampling() );
+    wbReservoirSampling.setSelection( meta.isDoingReservoirSampling() );
     setItemText( wtvReservoirSamplingSize, meta.getReservoirSamplingSize() );
-    setItemText( wtvRandomSeed, Const.NVL( meta.getRandomSeed(), "" ) );
-    wbIncludeInputAsOutput.setSelection( meta.getIncludeInputAsOutput() );
-    setItemText( wtvPyVarsToGet, listToString( meta.getPythonVariablesToGet() ) );
-    wbContinueOnUnsetVars.setSelection( meta.getContinueOnUnsetVars() );
+    setItemText( wtvRandomSeed, Const.NVL( meta.getSeed(), "" ) );
+    wbIncludeInputAsOutput.setSelection( meta.isIncludeInputAsOutput() );
+    setItemText( wtvPyVarsToGet, listToString( meta.getPyVarsToGet() ) );
+    wbContinueOnUnsetVars.setSelection( meta.isContinueOnUnsetVars() );
     setItemText( wtvPythonCommand, meta.getPythonCommand() );
     setItemText( wtvPyPathEntries, meta.getPyPathEntries() );
-    setItemText( wtvPyServerID, meta.getPytServerID() );
+    setItemText( wtvPyServerID, meta.getServerID() );
     wstcScriptEditor.setText( meta.getScript() == null ? "" : meta.getScript() ); //$NON-NLS-1$
-    wbLoadScriptFile.setSelection( meta.getLoadScriptAtRuntime() );
-    setItemText( wtvScriptLocation, meta.getScriptToLoad() );
-    wbIncludeRowIndex.setSelection( meta.getIncludeFrameRowIndexAsOutputField() );
+    wbLoadScriptFile.setSelection( meta.isLoadScriptAtRuntime() );
+    setItemText( wtvScriptLocation, meta.getLoadScriptFile() );
+    wbIncludeRowIndex.setSelection( meta.isIncludeRowIndex() );
 
     setInputToFramesTableFields( meta );
     setOutputFieldsTableFields( meta );
@@ -982,7 +982,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   private void varsToTableFields( CPythonScriptExecutorMeta meta ) {
     // List<IRowMeta> incomingMetas;
     IRowMeta incomingMetas = new RowMeta();
-    if ( meta.getIncludeInputAsOutput() ) {
+    if ( meta.isIncludeInputAsOutput() ) {
       List<String> frameNames = meta.getFrameNames();
       List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
       if ( frameNames.size() > 0 && infoStreams.size() > 0 ) {
@@ -1052,17 +1052,17 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     meta.setRowsToProcessSize( wtvRowsToProcessSize.getText() );
     meta.setDoingReservoirSampling( wbReservoirSampling.getSelection() );
     meta.setReservoirSamplingSize( wtvReservoirSamplingSize.getText() );
-    meta.setRandomSeed( wtvRandomSeed.getText() );
+    meta.setSeed( wtvRandomSeed.getText() );
     meta.setContinueOnUnsetVars( wbContinueOnUnsetVars.getSelection() );
-    meta.setPythonVariablesToGet( stringToList( wtvPyVarsToGet.getText() ) );
+    meta.setPyVarsToGet( stringToList( wtvPyVarsToGet.getText() ) );
     meta.setPythonCommand( wtvPythonCommand.getText() );
     meta.setPyPathEntries( wtvPyPathEntries.getText() );
-    meta.setPyServerID( wtvPyServerID.getText() );
+    meta.setServerID( wtvPyServerID.getText() );
     meta.setIncludeInputAsOutput( wbIncludeInputAsOutput.getSelection() );
     meta.setScript( wstcScriptEditor.getText() );
     meta.setLoadScriptAtRuntime( wbLoadScriptFile.getSelection() );
-    meta.setScriptToLoad( wtvScriptLocation.getText() );
-    meta.setIncludeFrameRowIndexAsOutputField( wbIncludeRowIndex.getSelection() );
+    meta.setLoadScriptFile( wtvScriptLocation.getText() );
+    meta.setIncludeRowIndex( wbIncludeRowIndex.getSelection() );
 
     // incoming stream/frame name data from table
     int numNonEmpty = wtvInputFrames.nrNonEmpty();
