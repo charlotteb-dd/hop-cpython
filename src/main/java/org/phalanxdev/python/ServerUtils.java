@@ -669,8 +669,8 @@ public class ServerUtils {
    */
   protected static RowMetaAndRows csvToRows( String csv, IRowMeta kettleMeta, int numRows ) throws IOException {
     RowMetaAndRows rowMetaAndRows = new RowMetaAndRows();
-    rowMetaAndRows.m_rowMeta = kettleMeta;
-    rowMetaAndRows.m_rows = new Object[numRows][];
+    rowMetaAndRows.rowMeta = kettleMeta;
+    rowMetaAndRows.rows = new Object[numRows][];
     int count = 0;
     // use a foreign line ending so that we can still have cr/lf in text cells
     for ( String line : csv.split( "#\\|\\|#" ) ) {
@@ -706,7 +706,7 @@ public class ServerUtils {
             row[i] = parsed[i].replace( "<lf>", "\n" ).replace( "<cr>", "\r" );
         }
       }
-      rowMetaAndRows.m_rows[count++] = row;
+      rowMetaAndRows.rows[count++] = row;
     }
 
     return rowMetaAndRows;

@@ -55,8 +55,6 @@ import org.phalanxdev.hop.pipeline.transforms.reservoirsampling.ReservoirSamplin
 import org.phalanxdev.python.PythonSession;
 import org.phalanxdev.python.SessionException;
 
-
-
 /**
  * Data class for the CPythonScriptExecutor step
  *
@@ -84,68 +82,68 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
    * Holds the full output row meta data (including any incoming fields that are copied to the
    * outgoing)
    */
-  public IRowMeta m_outputRowMeta;
+  public IRowMeta outputRowMeta;
 
   /**
    * Holds output row meta for fields only generated from script execution
    */
-  public IRowMeta m_scriptOnlyOutputRowMeta;
+  public IRowMeta scriptOnlyOutputRowMeta;
 
   /**
    * Holds the row meta for all incoming fields that are getting copied to the output
    */
-  public IRowMeta m_incomingFieldsIncludedInOutputRowMeta;
+  public IRowMeta incomingFieldsIncludedInOutputRowMeta;
 
   /**
    * The incoming row sets
    */
-  protected List<IRowSet> m_incomingRowSets;
+  protected List<IRowSet> incomingRowSets;
 
   /**
    * The list of processed row sets during the getRow of each incoming input stream
    */
-  protected boolean[] m_finishedRowSets;
+  protected boolean[] finishedRowSets;
 
   /**
    * A collection of the frame buffers per input frame
    */
-  protected List<List<Object[]>> m_frameBuffers = new ArrayList<List<Object[]>>();
+  protected List<List<Object[]>> frameBuffers = new ArrayList<List<Object[]>>();
 
   /**
    * Holds the reservoir samplers
    */
-  protected List<ReservoirSamplingData> m_reservoirSamplers = new ArrayList<ReservoirSamplingData>();
+  protected List<ReservoirSamplingData> reservoirSamplers = new ArrayList<ReservoirSamplingData>();
 
   /**
    * Holds the row meta associated with each frame buffer or reservoir sampler
    */
-  protected List<IRowMeta> m_infoMetas = new ArrayList<IRowMeta>();
+  protected List<IRowMeta> infoMetas = new ArrayList<IRowMeta>();
 
   /**
    * A index used to reference a line for the incoming rows when we are processing row by row with
    * reservoir sampling active.
    */
-  protected int m_rowByRowReservoirSampleIndex;
+  protected int rowByRowReservoirSampleIndex;
 
   /**
    * Batch size
    */
-  protected int m_batchSize = 1000;
+  protected int batchSize = 1000;
 
   /**
    * Reservoir Samplers size
    */
-  protected int m_reservoirSamplersSize;
+  protected int reservoirSamplersSize;
 
   /**
    * True if input stream values should be copied to the output stream
    */
-  protected boolean m_includeInputAsOutput;
+  protected boolean includeInputAsOutput;
 
   /**
    * The script to run
    */
-  protected String m_script;
+  protected String script;
 
   /**
    * Lookup for output indexes
@@ -155,29 +153,29 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
   /**
    * Lookup output indexes for just input fields that are being copied to the output
    */
-  protected Map<String, Integer> m_nonScriptOutputMetaIndexLookup = new HashMap<String, Integer>();
+  protected Map<String, Integer> nonScriptOutputMetaIndexLookup = new HashMap<String, Integer>();
 
   /**
    * Variables to retrieve or columns present in pandas data frame that are not defined in the
    * output meta
    */
-  protected List<String> m_varsOrColsNotDefinedInOutputMeta = new ArrayList<String>();
+  protected List<String> varsOrColsNotDefinedInOutputMeta = new ArrayList<String>();
 
   /**
    * Variables or columns defined in the output meta that are not present in the variables to
    * retrieve or columns in the pandas data frame. Script logic (based on input values) could
    * dictate that some variables are not set or dataframe columns not generated for some reason.
    */
-  protected List<String> m_varsOrColsInOutputMetaNotPresent = new ArrayList<String>();
+  protected List<String> varsOrColsInOutputMetaNotPresent = new ArrayList<String>();
 
-  protected boolean m_first = true;
+  protected boolean first = true;
 
   /**
    * holds any unset variables for a script execution
    */
-  protected List<String> m_unsetVars = new ArrayList<String>();
+  protected List<String> unsetVars = new ArrayList<String>();
 
-  protected Set<String> m_tmpSet = new HashSet<String>();
+  protected Set<String> tmpSet = new HashSet<String>();
 
   protected static String loadScriptFromFile( String file ) throws HopException {
     FileObject scriptF = HopVfs.getFileObject( file );
@@ -222,9 +220,9 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
    * re-order output fields in the dialog for this step, so we need the lookup.
    */
   public void initNonScriptOutputIndexLookup() {
-    for ( IValueMeta v : m_incomingFieldsIncludedInOutputRowMeta.getValueMetaList() ) {
-      int outIndex = m_outputRowMeta.indexOfValue( v.getName() );
-      m_nonScriptOutputMetaIndexLookup.put( v.getName(), outIndex );
+    for ( IValueMeta v : incomingFieldsIncludedInOutputRowMeta.getValueMetaList() ) {
+      int outIndex = outputRowMeta.indexOfValue( v.getName() );
+      nonScriptOutputMetaIndexLookup.put( v.getName(), outIndex );
     }
   }
 
@@ -245,8 +243,8 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 
     // Use the new Arrow-enabled method which automatically falls back to CSV if needed
     PythonSession.RowMetaAndRows fromPy = session.rowsFromPythonDataFrameWithArrow( frameName, includeRowIndex );
-    IRowMeta frameMeta = fromPy.m_rowMeta;
-    Object[][] frameRows = fromPy.m_rows;
+    IRowMeta frameMeta = fromPy.rowMeta;
+    Object[][] frameRows = fromPy.rows;
     Object[][] outputRows = new Object[frameRows.length][];
 
     if ( log.isDetailed() ) {
@@ -254,13 +252,13 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
       StringBuilder colsInOutputMetaNotPresentInFrame = new StringBuilder();
 
       for ( IValueMeta vm : frameMeta.getValueMetaList() ) {
-        if ( m_outputRowMeta.indexOfValue( vm.getName() ) < 0 ) {
+        if ( outputRowMeta.indexOfValue( vm.getName() ) < 0 ) {
           colsNotDefinedInOutputMeta.append( vm.getName() ).append( " " );
         }
       }
 
-      for ( IValueMeta vm : m_outputRowMeta.getValueMetaList() ) {
-        if ( !m_nonScriptOutputMetaIndexLookup.containsKey( vm.getName() )
+      for ( IValueMeta vm : outputRowMeta.getValueMetaList() ) {
+        if ( !nonScriptOutputMetaIndexLookup.containsKey( vm.getName() )
             && frameMeta.indexOfValue( vm.getName() ) < 0 ) {
           colsInOutputMetaNotPresentInFrame.append( vm.getName() ).append( " " );
         }
@@ -278,10 +276,10 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 
     for ( int i = 0; i < frameRows.length; i++ ) {
       Object[] frameRow = frameRows[i];
-      outputRows[i] = RowDataUtil.allocateRowData( m_outputRowMeta.size() );
+      outputRows[i] = RowDataUtil.allocateRowData( outputRowMeta.size() );
       for ( int j = 0; j < frameMeta.size(); j++ ) {
         IValueMeta vmF = frameMeta.getValueMeta( j );
-        int outputIndex = m_outputRowMeta.indexOfValue( vmF.getName() );
+        int outputIndex = outputRowMeta.indexOfValue( vmF.getName() );
         if ( outputIndex >= 0 ) {
           outputRows[i][outputIndex] = frameRow[j];
         }
@@ -307,31 +305,31 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
    */
   public Object[] constructOutputRowNonFrame( PythonSession session, List<String> varsToGet,
       boolean continueOnUnsetVars, ILogChannel log ) throws HopException {
-    Object[] outputRow = RowDataUtil.allocateRowData( m_outputRowMeta.size() );
+    Object[] outputRow = RowDataUtil.allocateRowData( outputRowMeta.size() );
 
     // check var names against output meta
-    if ( m_first ) {
+    if ( first ) {
       // check for vars that are not defined in output meta
       for ( String v : varsToGet ) {
         // if ( !m_outputMetaIndexLookup.containsKey( v ) ) {
-        if ( m_outputRowMeta.indexOfValue( v ) < 0 ) {
-          m_varsOrColsNotDefinedInOutputMeta.add( v );
+        if ( outputRowMeta.indexOfValue( v ) < 0 ) {
+          varsOrColsNotDefinedInOutputMeta.add( v );
         }
       }
 
-      if ( m_varsOrColsNotDefinedInOutputMeta.size() > 0 && log != null ) {
+      if ( varsOrColsNotDefinedInOutputMeta.size() > 0 && log != null ) {
         StringBuilder b = new StringBuilder();
-        for ( String v : m_varsOrColsNotDefinedInOutputMeta ) {
+        for ( String v : varsOrColsNotDefinedInOutputMeta ) {
           b.append( v ).append( " " );
         }
         log.logDetailed( BaseMessages
             .getString( PKG, "CPythonScriptExecutor.Message.VarsOrColsNotDefinedInOutputMeta", b.toString() ) );
       }
-      m_first = false;
+      first = false;
     }
 
-    m_tmpSet.clear();
-    m_unsetVars.clear();
+    tmpSet.clear();
+    unsetVars.clear();
 
     // get the values of the variables
     for ( String v : varsToGet ) {
@@ -339,21 +337,21 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
         // add this to the ok list, so we can check to see if there
         // are vars defined in output meta that are not set or not
         // present in the list of vars to get
-        m_tmpSet.add( v );
+        tmpSet.add( v );
 
-        int outputIndex = m_outputRowMeta.indexOfValue( v );
+        int outputIndex = outputRowMeta.indexOfValue( v );
         if ( outputIndex >= 0 ) {
           PythonSession.PythonVariableType varType = session.getPythonVariableType( v );
           if ( varType == PythonSession.PythonVariableType.Image ) {
-            if ( m_outputRowMeta.getValueMeta( outputIndex ).getType() != IValueMeta.TYPE_SERIALIZABLE ) {
+            if ( outputRowMeta.getValueMeta( outputIndex ).getType() != IValueMeta.TYPE_SERIALIZABLE ) {
               throw new HopException(
                   BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.ImageDataMustBeStoredInSerializable" ) );
             }
             outputRow[outputIndex] = session.getImageFromPython( v );
           } else {
             Object varVal = session.getVariableValueFromPythonAsPlainString( v );
-            if ( m_outputRowMeta.getValueMeta( outputIndex ).getType() != IValueMeta.TYPE_STRING ) {
-              varVal = m_outputRowMeta.getValueMeta( outputIndex )
+            if ( outputRowMeta.getValueMeta( outputIndex ).getType() != IValueMeta.TYPE_STRING ) {
+              varVal = outputRowMeta.getValueMeta( outputIndex )
                   //.convertData( new ValueMeta( v, IValueMeta.TYPE_STRING ), varVal );
                   .convertData( ValueMetaFactory.createValueMeta( v, IValueMeta.TYPE_STRING ), varVal );
             }
@@ -362,24 +360,24 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
         }
       } else {
         if ( !continueOnUnsetVars ) {
-          m_unsetVars.add( v );
+          unsetVars.add( v );
         }
       }
     }
 
-    if ( m_unsetVars.size() > 0 ) {
+    if ( unsetVars.size() > 0 ) {
       StringBuilder b = new StringBuilder();
-      for ( String v : m_unsetVars ) {
+      for ( String v : unsetVars ) {
         b.append( v ).append( " " );
       }
       throw new HopException(
           BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.PythonVariableNotSet", b.toString() ) );
     }
 
-    if ( m_tmpSet.size() != m_outputRowMeta.size() ) {
+    if ( tmpSet.size() != outputRowMeta.size() ) {
       StringBuilder b = new StringBuilder();
-      for ( IValueMeta outV : m_scriptOnlyOutputRowMeta.getValueMetaList() ) {
-        if ( !m_tmpSet.contains( outV.getName() ) ) {
+      for ( IValueMeta outV : scriptOnlyOutputRowMeta.getValueMetaList() ) {
+        if ( !tmpSet.contains( outV.getName() ) ) {
           b.append( outV.getName() ).append( " " );
         }
       }
@@ -564,8 +562,8 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
               //new ValueMeta( varToGet, IValueMeta.TYPE_STRING );
               ValueMetaFactory.createValueMeta( varToGet, IValueMeta.TYPE_STRING );
           PythonSession.RowMetaAndRows result = new PythonSession.RowMetaAndRows();
-          result.m_rowMeta = new RowMeta();
-          result.m_rowMeta.addValueMeta( vm );
+          result.rowMeta = new RowMeta();
+          result.rowMeta.addValueMeta( vm );
           return result;
         }
       } catch ( Exception ex ) {

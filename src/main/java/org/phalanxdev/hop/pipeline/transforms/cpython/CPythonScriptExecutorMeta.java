@@ -55,13 +55,21 @@ import org.w3c.dom.Node;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Meta class for the CPythonScriptExecutor step
  *
  * @author Mark Hall (mhall{[at]}phalanxdev{[dot]}com)
  */
-@Transform(id = "CPythonScriptExecutor", image = "pylogo.svg", name = "CPython Script Executor", description = "Executes a python script", categoryDescription = "Statistics")
+@Transform(id = "CPythonScriptExecutor",
+		   image = "pylogo.svg",
+		   name = "CPython Script Executor",
+		   description = "Executes a python script",
+		   categoryDescription = "Statistics")
+@Getter
+@Setter
 public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptExecutor, CPythonScriptExecutorData> {
 
   private static Class<?> PKG = CPythonScriptExecutor.class;
@@ -219,323 +227,323 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
   /**
    * Outgoing fields
    */
-  protected IRowMeta m_outputFields;
+  protected IRowMeta outputFields;
 
-  public void setPythonCommand(String pythonCommand) {
-    this.pythonCommand = pythonCommand;
-  }
-
-  public String getPythonCommand() {
-    return pythonCommand;
-  }
-
-  public void setPyPathEntries(String pyPathEntries) {
-    this.pyPathEntries = pyPathEntries;
-  }
-
-  public String getPyPathEntries() {
-    return pyPathEntries;
-  }
-
-  public void setServerID(String pyServerID) {
-    this.serverID = pyServerID;
-  }
-
-  public String getServerID() {
-    return serverID;
-  }
-
-  /**
-   * Get the output structure
-   *
-   * @return the output structure
-   */
-  public IRowMeta getOutputFields() {
-    return m_outputFields;
-  }
-
-  /**
-   * Set the output structure
-   *
-   * @param rm the output structure
-   */
-  public void setOutputFields(IRowMeta rm) {
-    m_outputFields = rm;
-  }
-
-  public void setRowsToProcess(String s) {
-    rowsToProcess = s;
-  }
-
-  public String getRowsToProcess() {
-    return rowsToProcess;
-  }
-
-  public void setRowsToProcessSize(String s) {
-    rowsToProcessSize = s;
-  }
-
-  public String getRowsToProcessSize() {
-    return rowsToProcessSize;
-  }
-
-  /**
-   * Set whether reservoir sampling is to be used in the single input case. Sampling is always used
-   * when there are multiple input row sets.
-   *
-   * @param r true if reservoir sampling is to be used
-   */
-  public void setDoingReservoirSampling(boolean r) {
-    doingReservoirSampling = r;
-  }
-
-  /**
-   * Get whether reservoir sampling is to be used in the single input case. Sampling is always used
-   * when there are multiple input row sets.
-   *
-   * @return true if reservoir sampling is to be used in the single input case.
-   */
-  public boolean isDoingReservoirSampling() {
-    return doingReservoirSampling;
-  }
-
-  /**
-   * Set the size of the reservoir
-   *
-   * @param s the size of the reservoir
-   */
-  public void setReservoirSamplingSize(String s) {
-    reservoirSamplingSize = s;
-  }
-
-  /**
-   * Get the size of the reservoir
-   *
-   * @return the size of the reservoir
-   */
-  public String getReservoirSamplingSize() {
-    return reservoirSamplingSize;
-  }
-
-  /**
-   * Set the random seed to use for reservoir sampling
-   *
-   * @param seed the random seed to use when reservoir sampling
-   */
-  public void setSeed(String seed) {
-    this.seed = seed;
-  }
-
-  /**
-   * Get the random seed to use for reservoir sampling
-   *
-   * @return the random seed to use when reservoir sampling
-   */
-  public String getSeed() {
-    return seed;
-  }
-
-  /**
-   * Sets whether the step should or not include input values in the output stream
-   */
-  public void setIncludeInputAsOutput(boolean s) {
-    includeInputAsOutput = s;
-  }
-
-  /**
-   * Gets whether the step should or not include input values in the output stream
-   *
-   * @return true if step should include input values in output
-   */
-  public boolean isIncludeInputAsOutput() {
-    return includeInputAsOutput;
-  }
-
-  /**
-   * Set whether to use Apache Arrow for data transfer
-   *
-   * @param useArrow true to use Arrow when available
-   */
-  public void setUseArrow(boolean useArrow) {
-    this.useArrow = useArrow;
-  }
-
-  /**
-   * Get whether to use Apache Arrow for data transfer
-   *
-   * @return true if Arrow should be used when available
-   */
-  public boolean isUseArrow() {
-    return useArrow;
-  }
-
-  /**
-   * Set whether to load a script from the file system at runtime rather than executing the user
-   * supplied script
-   *
-   * @param l true if a script is to be loaded at runtime
-   */
-  public void setLoadScriptAtRuntime(boolean l) {
-    loadScriptAtRuntime = l;
-  }
-
-  /**
-   * Get whether to load a script from the file system at runtime rather than executing the user
-   * supplied script
-   *
-   * @return true if a script is to be loaded at runtime
-   */
-  public boolean isLoadScriptAtRuntime() {
-    return loadScriptAtRuntime;
-  }
-
-  /**
-   * Set the path to the script to load at runtime (if loading at runtime)
-   *
-   * @param scriptFile the script file to load at runtime
-   */
-  public void setLoadScriptFile(String scriptFile) {
-    loadScriptFile = scriptFile;
-  }
-  
-  
-
-  /**
-   * Get the path to the script to load at runtime (if loading at runtime)
-   *
-   * @return the script file to load at runtime
-   */
-  public String getLoadScriptFile() {
-    return loadScriptFile;
-  }
-
-  /**
-   * Set the python script to execute
-   *
-   * @param script the script to execute
-   */
-  public void setScript(String script) {
-    this.script = script;
-  }
-
-  /**
-   * Get the python script to execute
-   *
-   * @return the script to execute
-   */
-  public String getScript() {
-    return script;
-  }
-
-  /**
-   * Set the frame names to use when converting incoming row sets into pandas data frames in python.
-   * These are the variable names that the user can reference the data by
-   *
-   * @param names a list of frame names to use - one for each incoming row set
-   */
-  public void setFrameNames(List<String> names) {
-    frameNames = names;
-  }
-
-  /**
-   * Get the frame names to use when converting incoming row sets into pandas data frames in python.
-   * These are the variable names that the user can reference the data by
-   *
-   * @return a list of frame names to use - one for each incoming row set
-   */
-  public List<String> getFrameNames() {
-    return frameNames;
-  }
-
-  /**
-   * Set the list of python variables to retrieve. If there is more than one variable being
-   * retrieved, then each variable will be extracted from python as a string, unless it is an image,
-   * in which case the image data is retrieved. The names of fields output by the step are expected
-   * to match the variable names in this case; furthermore, the user is expected to set the
-   * appropriate outgoing Kettle field type (this must be binary in the case of image data). Note
-   * that the step will not know the types of the specified variables before runtime.
-   * <p/>
-   * If there is just one variable being extracted from python, then the output fields must match
-   * the names of the columns of a pandas data frame (in the case that the variable is a data
-   * frame), or the name of the variable in the case that is not a data frame. In both cases,
-   * appropriate Kettle types must be specified by the user.
-   *
-   * @param pyVars the list of python variables to retrieve
-   */
-//  public void setPythonVariablesToGet(List<String> pyVars) {
-//    pyVarsToGet = pyVars;
+//  public void setPythonCommand(String pythonCommand) {
+//    this.pythonCommand = pythonCommand;
 //  }
-  
-  public void setPyVarsToGet(List<String> pyVars) {
-	  pyVarsToGet = pyVars;
-  }
+//
+//  public String getPythonCommand() {
+//    return pythonCommand;
+//  }
+//
+//  public void setPyPathEntries(String pyPathEntries) {
+//    this.pyPathEntries = pyPathEntries;
+//  }
+//
+//  public String getPyPathEntries() {
+//    return pyPathEntries;
+//  }
+//
+//  public void setServerID(String pyServerID) {
+//    this.serverID = pyServerID;
+//  }
+//
+//  public String getServerID() {
+//    return serverID;
+//  }
 
-  /**
-   * Get the list of python variables to retrieve. If there is more than one variable being
-   * retrieved, then each variable will be extracted from python as a string, unless it is an image,
-   * in which case the image data is retrieved. The names of fields output by the step are expected
-   * to match the variable names in this case; furthermore, the user is expected to set the
-   * appropriate outgoing Kettle field type (this must be binary in the case of image data). Note
-   * that the step will not know the types of the specified variables before runtime.
-   * <p/>
-   * If there is just one variable being extracted from python, then the output fields must match
-   * the names of the columns of a pandas data frame (in the case that the variable is a data
-   * frame), or the name of the variable in the case that is not a data frame. In both cases,
-   * appropriate Kettle types must be specified by the user.
-   *
-   * @return the list of python variables to retrieve
-   */
-  public List<String> getPyVarsToGet() {
-    return pyVarsToGet;
-  }
-
-  /**
-   * Set whether to include the pandas data frame row index as an output field, in the case where
-   * the output of the step is a single pandas data frame. Has no affect if multiple variables are
-   * being retrieved from python.
-   *
-   * @param includeFrameRowIndexAsOutputField true to include the frame row index as an output
-   * field
-   */
-//  public void setIncludeFrameRowIndexAsOutputField(boolean includeFrameRowIndexAsOutputField) {
+//  /**
+//   * Get the output structure
+//   *
+//   * @return the output structure
+//   */
+//  public IRowMeta getOutputFields() {
+//    return m_outputFields;
+//  }
+//
+//  /**
+//   * Set the output structure
+//   *
+//   * @param rm the output structure
+//   */
+//  public void setOutputFields(IRowMeta rm) {
+//    m_outputFields = rm;
+//  }
+//
+//  public void setRowsToProcess(String s) {
+//    rowsToProcess = s;
+//  }
+//
+//  public String getRowsToProcess() {
+//    return rowsToProcess;
+//  }
+//
+//  public void setRowsToProcessSize(String s) {
+//    rowsToProcessSize = s;
+//  }
+//
+//  public String getRowsToProcessSize() {
+//    return rowsToProcessSize;
+//  }
+//
+//  /**
+//   * Set whether reservoir sampling is to be used in the single input case. Sampling is always used
+//   * when there are multiple input row sets.
+//   *
+//   * @param r true if reservoir sampling is to be used
+//   */
+//  public void setDoingReservoirSampling(boolean r) {
+//    doingReservoirSampling = r;
+//  }
+//
+//  /**
+//   * Get whether reservoir sampling is to be used in the single input case. Sampling is always used
+//   * when there are multiple input row sets.
+//   *
+//   * @return true if reservoir sampling is to be used in the single input case.
+//   */
+//  public boolean isDoingReservoirSampling() {
+//    return doingReservoirSampling;
+//  }
+//
+//  /**
+//   * Set the size of the reservoir
+//   *
+//   * @param s the size of the reservoir
+//   */
+//  public void setReservoirSamplingSize(String s) {
+//    reservoirSamplingSize = s;
+//  }
+//
+//  /**
+//   * Get the size of the reservoir
+//   *
+//   * @return the size of the reservoir
+//   */
+//  public String getReservoirSamplingSize() {
+//    return reservoirSamplingSize;
+//  }
+//
+//  /**
+//   * Set the random seed to use for reservoir sampling
+//   *
+//   * @param seed the random seed to use when reservoir sampling
+//   */
+//  public void setSeed(String seed) {
+//    this.seed = seed;
+//  }
+//
+//  /**
+//   * Get the random seed to use for reservoir sampling
+//   *
+//   * @return the random seed to use when reservoir sampling
+//   */
+//  public String getSeed() {
+//    return seed;
+//  }
+//
+//  /**
+//   * Sets whether the step should or not include input values in the output stream
+//   */
+//  public void setIncludeInputAsOutput(boolean s) {
+//    includeInputAsOutput = s;
+//  }
+//
+//  /**
+//   * Gets whether the step should or not include input values in the output stream
+//   *
+//   * @return true if step should include input values in output
+//   */
+//  public boolean isIncludeInputAsOutput() {
+//    return includeInputAsOutput;
+//  }
+//
+//  /**
+//   * Set whether to use Apache Arrow for data transfer
+//   *
+//   * @param useArrow true to use Arrow when available
+//   */
+//  public void setUseArrow(boolean useArrow) {
+//    this.useArrow = useArrow;
+//  }
+//
+//  /**
+//   * Get whether to use Apache Arrow for data transfer
+//   *
+//   * @return true if Arrow should be used when available
+//   */
+//  public boolean isUseArrow() {
+//    return useArrow;
+//  }
+//
+//  /**
+//   * Set whether to load a script from the file system at runtime rather than executing the user
+//   * supplied script
+//   *
+//   * @param l true if a script is to be loaded at runtime
+//   */
+//  public void setLoadScriptAtRuntime(boolean l) {
+//    loadScriptAtRuntime = l;
+//  }
+//
+//  /**
+//   * Get whether to load a script from the file system at runtime rather than executing the user
+//   * supplied script
+//   *
+//   * @return true if a script is to be loaded at runtime
+//   */
+//  public boolean isLoadScriptAtRuntime() {
+//    return loadScriptAtRuntime;
+//  }
+//
+//  /**
+//   * Set the path to the script to load at runtime (if loading at runtime)
+//   *
+//   * @param scriptFile the script file to load at runtime
+//   */
+//  public void setLoadScriptFile(String scriptFile) {
+//    loadScriptFile = scriptFile;
+//  }
+//  
+//  
+//
+//  /**
+//   * Get the path to the script to load at runtime (if loading at runtime)
+//   *
+//   * @return the script file to load at runtime
+//   */
+//  public String getLoadScriptFile() {
+//    return loadScriptFile;
+//  }
+//
+//  /**
+//   * Set the python script to execute
+//   *
+//   * @param script the script to execute
+//   */
+//  public void setScript(String script) {
+//    this.script = script;
+//  }
+//
+//  /**
+//   * Get the python script to execute
+//   *
+//   * @return the script to execute
+//   */
+//  public String getScript() {
+//    return script;
+//  }
+//
+//  /**
+//   * Set the frame names to use when converting incoming row sets into pandas data frames in python.
+//   * These are the variable names that the user can reference the data by
+//   *
+//   * @param names a list of frame names to use - one for each incoming row set
+//   */
+//  public void setFrameNames(List<String> names) {
+//    frameNames = names;
+//  }
+//
+//  /**
+//   * Get the frame names to use when converting incoming row sets into pandas data frames in python.
+//   * These are the variable names that the user can reference the data by
+//   *
+//   * @return a list of frame names to use - one for each incoming row set
+//   */
+//  public List<String> getFrameNames() {
+//    return frameNames;
+//  }
+//
+//  /**
+//   * Set the list of python variables to retrieve. If there is more than one variable being
+//   * retrieved, then each variable will be extracted from python as a string, unless it is an image,
+//   * in which case the image data is retrieved. The names of fields output by the step are expected
+//   * to match the variable names in this case; furthermore, the user is expected to set the
+//   * appropriate outgoing Kettle field type (this must be binary in the case of image data). Note
+//   * that the step will not know the types of the specified variables before runtime.
+//   * <p/>
+//   * If there is just one variable being extracted from python, then the output fields must match
+//   * the names of the columns of a pandas data frame (in the case that the variable is a data
+//   * frame), or the name of the variable in the case that is not a data frame. In both cases,
+//   * appropriate Kettle types must be specified by the user.
+//   *
+//   * @param pyVars the list of python variables to retrieve
+//   */
+////  public void setPythonVariablesToGet(List<String> pyVars) {
+////    pyVarsToGet = pyVars;
+////  }
+//  
+//  public void setPyVarsToGet(List<String> pyVars) {
+//	  pyVarsToGet = pyVars;
+//  }
+//
+//  /**
+//   * Get the list of python variables to retrieve. If there is more than one variable being
+//   * retrieved, then each variable will be extracted from python as a string, unless it is an image,
+//   * in which case the image data is retrieved. The names of fields output by the step are expected
+//   * to match the variable names in this case; furthermore, the user is expected to set the
+//   * appropriate outgoing Kettle field type (this must be binary in the case of image data). Note
+//   * that the step will not know the types of the specified variables before runtime.
+//   * <p/>
+//   * If there is just one variable being extracted from python, then the output fields must match
+//   * the names of the columns of a pandas data frame (in the case that the variable is a data
+//   * frame), or the name of the variable in the case that is not a data frame. In both cases,
+//   * appropriate Kettle types must be specified by the user.
+//   *
+//   * @return the list of python variables to retrieve
+//   */
+//  public List<String> getPyVarsToGet() {
+//    return pyVarsToGet;
+//  }
+//
+//  /**
+//   * Set whether to include the pandas data frame row index as an output field, in the case where
+//   * the output of the step is a single pandas data frame. Has no affect if multiple variables are
+//   * being retrieved from python.
+//   *
+//   * @param includeFrameRowIndexAsOutputField true to include the frame row index as an output
+//   * field
+//   */
+////  public void setIncludeFrameRowIndexAsOutputField(boolean includeFrameRowIndexAsOutputField) {
+////    includeRowIndex = includeFrameRowIndexAsOutputField;
+////  }
+//
+//  public void setIncludeRowIndex(boolean includeFrameRowIndexAsOutputField) {
 //    includeRowIndex = includeFrameRowIndexAsOutputField;
 //  }
-
-  public void setIncludeRowIndex(boolean includeFrameRowIndexAsOutputField) {
-    includeRowIndex = includeFrameRowIndexAsOutputField;
-  }
-  /**
-   * Get whether to include the pandas data frame row index as an output field, in the case where
-   * the output of the step is a single pandas data frame. Has no affect if multiple variables are
-   * being retrieved from python.
-   *
-   * @return true to include the frame row index as an output field
-   */
-//  public boolean getIncludeFrameRowIndexAsOutputField() {
-//    return includeRowIndex;
+//  /**
+//   * Get whether to include the pandas data frame row index as an output field, in the case where
+//   * the output of the step is a single pandas data frame. Has no affect if multiple variables are
+//   * being retrieved from python.
+//   *
+//   * @return true to include the frame row index as an output field
+//   */
+////  public boolean getIncludeFrameRowIndexAsOutputField() {
+////    return includeRowIndex;
+////  }
+//  public boolean isIncludeRowIndex() {
+//	    return includeRowIndex;
 //  }
-  public boolean isIncludeRowIndex() {
-	    return includeRowIndex;
-  }
-  /**
-   * Set whether to continue in the case that one or more user specified variables to retrieve are
-   * not set in the python environment after executing the script.
-   *
-   * @param continueOnUnset true to continue processing if there are unset variables
-   */
-  public void setContinueOnUnsetVars(boolean continueOnUnset) {
-    continueOnUnsetVars = continueOnUnset;
-  }
-
-  /**
-   * Get whether to continue in the case that one or more user specified variables to retrieve are
-   * not set in the python environment after executing the script.
-   *
-   * @return true to continue processing if there are unset variables
-   */
-  public boolean isContinueOnUnsetVars() {
-    return continueOnUnsetVars;
-  }
+//  /**
+//   * Set whether to continue in the case that one or more user specified variables to retrieve are
+//   * not set in the python environment after executing the script.
+//   *
+//   * @param continueOnUnset true to continue processing if there are unset variables
+//   */
+//  public void setContinueOnUnsetVars(boolean continueOnUnset) {
+//    continueOnUnsetVars = continueOnUnset;
+//  }
+//
+//  /**
+//   * Get whether to continue in the case that one or more user specified variables to retrieve are
+//   * not set in the python environment after executing the script.
+//   *
+//   * @return true to continue processing if there are unset variables
+//   */
+//  public boolean isContinueOnUnsetVars() {
+//    return continueOnUnsetVars;
+//  }
 
   public IRowMeta determineOutputRowMeta(IRowMeta[] info, IVariables space)
       throws HopException {
@@ -555,7 +563,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
         CPythonScriptExecutorData
             .determineOutputMetaSingleVariable(this, incomingMetas, this, getLog(), space);
 
-    return scriptRM.m_rowMeta;
+    return scriptRM.rowMeta;
   }
 
   @Override
@@ -564,8 +572,8 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
       IVariables space, IHopMetadataProvider metaStore) throws HopTransformException {
 
     rowMeta.clear();
-    if (m_outputFields != null && m_outputFields.size() > 0) {
-      rowMeta.addRowMeta(m_outputFields);
+    if (outputFields != null && outputFields.size() > 0) {
+      rowMeta.addRowMeta(outputFields);
 
       // Check across all input fields to see if they are in the output, and
       // whether they are binary storage. If binary storage then copy over the original input value meta
@@ -574,9 +582,9 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
         for (IRowMeta r : info) {
           if (r != null) {
             for (IValueMeta vm : r.getValueMetaList()) {
-              int outIndex = m_outputFields.indexOfValue(vm.getName());
+              int outIndex = outputFields.indexOfValue(vm.getName());
               if (outIndex >= 0) {
-                m_outputFields.setValueMeta(outIndex, vm);
+                outputFields.setValueMeta(outIndex, vm);
               }
             }
           }
@@ -768,11 +776,11 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
     buff.append("   " + XmlHandler.closeTag(INCOMING_STEP_NAMES_TAG)
         + Const.CR); //$NON-NLS-1$
 
-    if (m_outputFields != null && m_outputFields.size() > 0) {
+    if (outputFields != null && outputFields.size() > 0) {
       buff.append("   " + XmlHandler.openTag(OUTPUT_FIELDS_TAG)
           + Const.CR); //$NON-NLS-1$
-      for (int i = 0; i < m_outputFields.size(); i++) {
-        IValueMeta vm = m_outputFields.getValueMeta(i);
+      for (int i = 0; i < outputFields.size(); i++) {
+        IValueMeta vm = outputFields.getValueMeta(i);
         buff.append("        " + XmlHandler.openTag(SINGLE_OUTPUT_FIELD_TAG)
             + Const.CR); //$NON-NLS-1$
         buff.append("            " + XmlHandler.addTagValue("field_name", vm.getName())
@@ -869,7 +877,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
         && XmlHandler.countNodes(outgoingFields, SINGLE_OUTPUT_FIELD_TAG) > 0) {
       int nrfields = XmlHandler.countNodes(outgoingFields, SINGLE_OUTPUT_FIELD_TAG);
 
-      m_outputFields = new RowMeta();
+      outputFields = new RowMeta();
       for (int i = 0; i < nrfields; i++) {
         Node fieldNode = XmlHandler.getSubNodeByNr(outgoingFields, SINGLE_OUTPUT_FIELD_TAG, i);
         String name = XmlHandler.getTagValue(fieldNode, "field_name"); //$NON-NLS-1$
@@ -878,7 +886,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
         try {
           IValueMeta vm = ValueMetaFactory
               .createValueMeta(name, ValueMetaFactory.getIdForValueMeta(type));
-          m_outputFields.addValueMeta(vm);
+          outputFields.addValueMeta(vm);
         } catch (HopPluginException ex) {
           throw new HopXmlException(ex);
         }

@@ -88,36 +88,36 @@ public class PythonSession {
    * @author Mark Hall (mhall{[at]}pentaho{[dot]}com)
    */
   public static class RowMetaAndRows {
-    public Object[][] m_rows;
-    public IRowMeta m_rowMeta;
+    public Object[][] rows;
+    public IRowMeta rowMeta;
   }
 
   /**
    * The command used to start python for this session.
    */
-  private String m_pythonCommand;
+  private String pythonCommand;
 
   /**
    * Static map of initialized servers. A "default" entry will be used for
    * backward compatibility
    */
   private static Map<String, PythonSession>
-      m_pythonServers =
+      pythonServers =
       Collections.synchronizedMap( new HashMap<String, PythonSession>() );
 
   private static Map<String, String>
-      m_pythonEnvCheckResults =
+      pythonEnvCheckResults =
       Collections.synchronizedMap( new HashMap<String, String>() );
 
   /**
    * The unique key for this session/server
    */
-  private String m_sessionKey;
+  private String sessionKey;
 
   /**
    * the current session holder
    */
-  private Object m_sessionHolder;
+  private Object sessionHolder;
 
   /**
    * The session singleton
@@ -132,42 +132,42 @@ public class PythonSession {
   /**
    * For locking
    */
-  protected SessionMutex m_mutex = new SessionMutex();
+  protected SessionMutex mutex = new SessionMutex();
 
   /**
    * Server socket
    */
-  protected ServerSocket m_serverSocket;
+  protected ServerSocket serverSocket;
 
   /**
    * Local socket for comms with the python server
    */
-  protected Socket m_localSocket;
+  protected Socket localSocket;
 
   /**
    * The process executing the server
    */
-  protected Process m_serverProcess;
+  protected Process serverProcess;
 
   /**
    * True when the server has been shutdown
    */
-  protected boolean m_shutdown;
+  protected boolean shutdown;
 
   /**
    * A shutdown hook for stopping the server
    */
-  protected Thread m_shutdownHook;
+  protected Thread shutdownHook;
 
   /**
    * PID of the running python server
    */
-  protected int m_pythonPID = -1;
+  protected int pythonPID = -1;
 
   /**
    * The log to use
    */
-  protected ILogChannel m_log;
+  protected ILogChannel log;
 
   /**
    * Path to the tmp directory
@@ -178,12 +178,12 @@ public class PythonSession {
   /**
    * Whether Arrow support is available in Python
    */
-  protected boolean m_arrowAvailable = false;
+  protected boolean arrowAvailable = false;
 
   /**
    * Whether to use Arrow for data transfer (if available)
    */
-  protected boolean m_useArrow = true;
+  protected boolean useArrow = true;
 
   /**
    * Acquire the session for the requester
@@ -215,10 +215,10 @@ public class PythonSession {
   public static PythonSession acquireSession( String pythonCommand, String ownerID, Object requester )
       throws SessionException {
     String key = pythonCommand + ( ownerID != null && ownerID.length() > 0 ? ownerID : "" );
-    if ( !m_pythonServers.containsKey( key ) ) {
+    if ( !pythonServers.containsKey( key ) ) {
       throw new SessionException( "Python session " + key + " does not seem to exist!" );
     }
-    return m_pythonServers.get( key ).getSession( requester );
+    return pythonServers.get( key ).getSession( requester );
   }
 
   /**
@@ -246,10 +246,10 @@ public class PythonSession {
    */
   public static void releaseSession( String pythonCommand, String ownerID, Object requester ) throws SessionException {
     String key = pythonCommand + ( ownerID != null && ownerID.length() > 0 ? ownerID : "" );
-    if ( !m_pythonServers.containsKey( key ) ) {
+    if ( !pythonServers.containsKey( key ) ) {
       throw new SessionException( "Python session " + key + " does not seem to exist!" );
     }
-    m_pythonServers.get( key ).dropSession( requester );
+    pythonServers.get( key ).dropSession( requester );
   }
 
   /**
@@ -274,7 +274,7 @@ public class PythonSession {
    */
   public static synchronized boolean pythonAvailable( String pythonCommand, String ownerID ) {
     String key = pythonCommand + ( ownerID != null && ownerID.length() > 0 ? ownerID : "" );
-    return m_pythonServers.containsKey( key );
+    return pythonServers.containsKey( key );
   }
 
   protected static synchronized File installPyScriptsToTmp() throws IOException {
@@ -353,7 +353,7 @@ public class PythonSession {
       pathOriginal = "";
     }
 
-    File pythFile = new File( m_pythonCommand );
+    File pythFile = new File( pythonCommand );
     String exeDir = pythFile.getParent() != null ? pythFile.getParent().toString() : "";
 
     String
@@ -430,23 +430,23 @@ public class PythonSession {
     String osType = System.getProperty( "os.name" );
     boolean windows = osType != null && osType.toLowerCase().contains( "windows" );
 
-    if ( m_log != null ) {
-      m_log.logBasic( "Launching Python server with script (OS: " + osType + ")" );
+    if ( log != null ) {
+      log.logBasic( "Launching Python server with script (OS: " + osType + ")" );
     }
 
     Thread acceptThread = startServerSocket();
-    boolean debug = m_log != null && m_log.isDebug();
+    boolean debug = log != null && log.isDebug();
     String
         script =
-        getLaunchScript( pathEntries, "pyServer.py", windows, m_serverSocket.getLocalPort(), debug ? "debug" : "" );
+        getLaunchScript( pathEntries, "pyServer.py", windows, serverSocket.getLocalPort(), debug ? "debug" : "" );
     if ( debug ) {
       System.err.println( "Executing server launch script:\n\n" + script );
     }
 
     String scriptPath = File.createTempFile( "pyserver_", windows ? ".bat" : ".sh" ).toString();
     
-    if ( m_log != null ) {
-      m_log.logBasic( "Writing server launch script to: " + scriptPath );
+    if ( log != null ) {
+      log.logBasic( "Writing server launch script to: " + scriptPath );
     }
 
     FileWriter fwriter = new FileWriter( scriptPath );
@@ -455,30 +455,30 @@ public class PythonSession {
     fwriter.close();
 
     if ( !windows ) {
-      if ( m_log != null ) {
-        m_log.logDebug( "Making script executable: chmod u+x " + scriptPath );
+      if ( log != null ) {
+        log.logDebug( "Making script executable: chmod u+x " + scriptPath );
       }
       Runtime.getRuntime().exec( "chmod u+x " + scriptPath );
     }
 
     ProcessBuilder processBuilder = new ProcessBuilder( scriptPath );
     
-    if ( m_log != null ) {
-      m_log.logBasic( "Starting Python server process..." );
+    if ( log != null ) {
+      log.logBasic( "Starting Python server process..." );
     }
     
-    m_serverProcess = processBuilder.start();
+    serverProcess = processBuilder.start();
     
     // Start a thread to capture error output from the Python process
     Thread errorReaderThread = new Thread() {
       @Override public void run() {
         try {
           BufferedReader errorReader = new BufferedReader(
-              new InputStreamReader( m_serverProcess.getErrorStream() ) );
+              new InputStreamReader( serverProcess.getErrorStream() ) );
           String line;
           while ( ( line = errorReader.readLine() ) != null ) {
-            if ( m_log != null ) {
-              m_log.logError( "Python server error: " + line );
+            if ( log != null ) {
+              log.logError( "Python server error: " + line );
             } else {
               System.err.println( "Python server error: " + line );
             }
@@ -491,15 +491,15 @@ public class PythonSession {
     errorReaderThread.setDaemon( true );
     errorReaderThread.start();
     
-    if ( m_log != null ) {
-      m_log.logBasic( "Waiting for Python server to connect on port " + m_serverSocket.getLocalPort() + "..." );
+    if ( log != null ) {
+      log.logBasic( "Waiting for Python server to connect on port " + serverSocket.getLocalPort() + "..." );
     }
     
     try {
       acceptThread.join();
     } catch ( InterruptedException e ) {
-      if ( m_log != null ) {
-        m_log.logError( "Interrupted while waiting for server connection" );
+      if ( log != null ) {
+        log.logError( "Interrupted while waiting for server connection" );
       }
     }
 
@@ -521,7 +521,7 @@ public class PythonSession {
   private PythonSession( String pythonCommand, String serverID, String pathEntries, boolean defaultServer,
       ILogChannel log ) throws IOException {
 
-    m_log = log;
+    this.log = log;
     
     if ( log != null ) {
       log.logBasic( "Initializing Python session with command: " + pythonCommand );
@@ -544,12 +544,12 @@ public class PythonSession {
       }
       throw e;
     }
-    m_pythonCommand = pythonCommand;
+    pythonCommand = pythonCommand;
     String key = pythonCommand + ( serverID != null && serverID.length() > 0 ? serverID : "" );
-    m_sessionKey = key;
+    sessionKey = key;
 
-    if ( PythonSession.m_pythonServers.containsKey( m_sessionKey ) ) {
-      throw new IOException( "A server session for " + m_sessionKey + " Already exists!" );
+    if ( PythonSession.pythonServers.containsKey( sessionKey ) ) {
+      throw new IOException( "A server session for " + sessionKey + " Already exists!" );
     }
     if ( !defaultServer && pathEntries != null && pathEntries.length() > 0 ) {
       // use a shell/batch script to launch the server (so that we can
@@ -558,7 +558,7 @@ public class PythonSession {
         log.logBasic( "Running Python environment check with additional PATH entries..." );
       }
       String envCheckResults = writeAndLaunchPyCheck( pathEntries );
-      m_pythonEnvCheckResults.put( m_sessionKey, envCheckResults );
+      pythonEnvCheckResults.put( sessionKey, envCheckResults );
       
       if ( log != null && envCheckResults.length() > 0 ) {
         log.logDetailed( "Python environment check results:\n" + envCheckResults );
@@ -576,10 +576,10 @@ public class PythonSession {
       if ( !hasErrors ) {
         // launch server
         log.logDetailed(
-            "Python environment check passed. Launching " + m_pythonCommand + " with additional path [" + pathEntries + "] " + ( serverID != null ?
+            "Python environment check passed. Launching " + pythonCommand + " with additional path [" + pathEntries + "] " + ( serverID != null ?
                 " ID " + serverID : "" ) );
         launchServerScript( pathEntries );
-        m_pythonServers.put( m_sessionKey, this );
+        pythonServers.put( sessionKey, this );
       } else {
         log.logError( "Python environment check failed:\n\n" + envCheckResults );
       }
@@ -599,7 +599,7 @@ public class PythonSession {
       IOUtils.copy( pyProcess.getErrorStream(), errorWriter );
       String envCheckResults = writer.toString();
       String errorOutput = errorWriter.toString();
-      m_shutdown = false;
+      shutdown = false;
 
       if ( log != null && envCheckResults.length() > 0 ) {
         log.logDetailed( "Python environment check output:\n" + envCheckResults );
@@ -608,7 +608,7 @@ public class PythonSession {
         log.logError( "Python environment check errors:\n" + errorOutput );
       }
 
-      m_pythonEnvCheckResults.put( m_sessionKey, envCheckResults );
+      pythonEnvCheckResults.put( sessionKey, envCheckResults );
       
       // Check if environment check passed by looking for error indicators
       // Exclude informational messages about pyarrow availability 
@@ -620,10 +620,10 @@ public class PythonSession {
                          (envCheckResults.contains("Library ") && envCheckResults.contains("is not available"));
       
       if ( !hasErrors ) {
-        log.logDetailed( "Python environment check passed. Launching " + m_pythonCommand + ( serverID != null ? " ID " + serverID : "" ));
+        log.logDetailed( "Python environment check passed. Launching " + pythonCommand + ( serverID != null ? " ID " + serverID : "" ));
         // launch server
         launchServer( true );
-        m_pythonServers.put( m_sessionKey, this );
+        pythonServers.put( sessionKey, this );
 
         if ( s_sessionSingleton == null && defaultServer ) {
           s_sessionSingleton = this;
@@ -654,12 +654,12 @@ public class PythonSession {
    * @throws SessionException if python is not available
    */
   private synchronized PythonSession getSession( Object requester ) throws SessionException {
-    if ( m_sessionHolder == requester ) {
+    if ( sessionHolder == requester ) {
       return this;
     }
 
-    m_mutex.safeLock();
-    m_sessionHolder = requester;
+    mutex.safeLock();
+    sessionHolder = requester;
     return this;
   }
 
@@ -669,9 +669,9 @@ public class PythonSession {
    * @param requester the requesting object
    */
   private void dropSession( Object requester ) {
-    if ( requester == m_sessionHolder ) {
-      m_sessionHolder = null;
-      m_mutex.unlock();
+    if ( requester == sessionHolder ) {
+      sessionHolder = null;
+      mutex.unlock();
     }
   }
 
@@ -682,33 +682,33 @@ public class PythonSession {
    * @throws IOException if a problem occurs
    */
   private Thread startServerSocket() throws IOException {
-    if ( m_log != null ) {
-      m_log.logBasic( "Creating server socket..." );
+    if ( log != null ) {
+      log.logBasic( "Creating server socket..." );
     }
     
-    m_serverSocket = new ServerSocket( 0 );
-    m_serverSocket.setSoTimeout( 12000 );
+    serverSocket = new ServerSocket( 0 );
+    serverSocket.setSoTimeout( 12000 );
     
-    int port = m_serverSocket.getLocalPort();
-    if ( m_log != null ) {
-      m_log.logBasic( "Server socket created on port " + port + " with timeout 12000ms" );
+    int port = serverSocket.getLocalPort();
+    if ( log != null ) {
+      log.logBasic( "Server socket created on port " + port + " with timeout 12000ms" );
     }
 
     Thread acceptThread = new Thread() {
       @Override public void run() {
         try {
-          if ( m_log != null ) {
-            m_log.logDebug( "Waiting for Python server to connect on port " + port + "..." );
+          if ( log != null ) {
+            log.logDebug( "Waiting for Python server to connect on port " + port + "..." );
           }
-          m_localSocket = m_serverSocket.accept();
-          if ( m_log != null ) {
-            m_log.logBasic( "Python server connected successfully" );
+          localSocket = serverSocket.accept();
+          if ( log != null ) {
+            log.logBasic( "Python server connected successfully" );
           }
         } catch ( IOException e ) {
-          if ( m_log != null ) {
-            m_log.logError( "Failed to accept connection from Python server: " + e.getMessage() );
+          if ( log != null ) {
+            log.logError( "Failed to accept connection from Python server: " + e.getMessage() );
           }
-          m_localSocket = null;
+          localSocket = null;
         }
       }
     };
@@ -725,37 +725,37 @@ public class PythonSession {
    * @throws IOException if a problem occurs
    */
   private void checkLocalSocketAndCreateShutdownHook() throws IOException {
-    if ( m_localSocket == null ) {
-      if ( m_log != null ) {
-        m_log.logError( "Failed to establish connection with Python server - socket is null" );
+    if ( localSocket == null ) {
+      if ( log != null ) {
+        log.logError( "Failed to establish connection with Python server - socket is null" );
       }
       shutdown();
       throw new IOException( "Was unable to start python server" );
     } else {
-      if ( m_log != null ) {
-        m_log.logBasic( "Connection established with Python server, receiving initialization response..." );
+      if ( log != null ) {
+        log.logBasic( "Connection established with Python server, receiving initialization response..." );
       }
       
       // Use the new method that also returns Arrow availability
-      Map<String, Object> initResponse = ServerUtils.receiveServerInitResponse( m_localSocket.getInputStream() );
-      m_pythonPID = (Integer) initResponse.get( "pid" );
-      m_arrowAvailable = (Boolean) initResponse.get( "arrow_available" );
+      Map<String, Object> initResponse = ServerUtils.receiveServerInitResponse( localSocket.getInputStream() );
+      pythonPID = (Integer) initResponse.get( "pid" );
+      arrowAvailable = (Boolean) initResponse.get( "arrow_available" );
       
-      if ( m_log != null ) {
-        m_log.logBasic( "Python server initialized successfully:" );
-        m_log.logBasic( "  PID: " + m_pythonPID );
-        m_log.logBasic( "  Arrow support: " + (m_arrowAvailable ? "Available" : "Not available") );
-        if ( m_useArrow && !m_arrowAvailable ) {
-          m_log.logBasic( "  Note: Arrow was requested but is not available, will use CSV format" );
+      if ( log != null ) {
+        log.logBasic( "Python server initialized successfully:" );
+        log.logBasic( "  PID: " + pythonPID );
+        log.logBasic( "  Arrow support: " + (arrowAvailable ? "Available" : "Not available") );
+        if ( useArrow && !arrowAvailable ) {
+          log.logBasic( "  Note: Arrow was requested but is not available, will use CSV format" );
         }
       }
 
-      m_shutdownHook = new Thread() {
+      shutdownHook = new Thread() {
         @Override public void run() {
           shutdown();
         }
       };
-      Runtime.getRuntime().addShutdownHook( m_shutdownHook );
+      Runtime.getRuntime().addShutdownHook( shutdownHook );
     }
   }
 
@@ -770,40 +770,40 @@ public class PythonSession {
    * @throws IOException if a problem occurs
    */
   private void launchServer( boolean startPython ) throws IOException {
-    if ( m_log != null ) {
-      m_log.logBasic( "Launching Python server (startPython=" + startPython + ")" );
+    if ( log != null ) {
+      log.logBasic( "Launching Python server (startPython=" + startPython + ")" );
     }
 
     Thread acceptThread = startServerSocket();
-    int localPort = m_serverSocket.getLocalPort();
+    int localPort = serverSocket.getLocalPort();
 
     if ( startPython ) {
       String serverScript = s_osTmpDir + File.separator + "pyServer.py";
-      boolean debug = m_log != null && m_log.isDebug();
+      boolean debug = log != null && log.isDebug();
       
-      if ( m_log != null ) {
-        m_log.logBasic( "Starting Python server:" );
-        m_log.logBasic( "  Command: " + m_pythonCommand );
-        m_log.logBasic( "  Script: " + serverScript );
-        m_log.logBasic( "  Port: " + localPort );
-        m_log.logBasic( "  Debug mode: " + debug );
+      if ( log != null ) {
+        log.logBasic( "Starting Python server:" );
+        log.logBasic( "  Command: " + pythonCommand );
+        log.logBasic( "  Script: " + serverScript );
+        log.logBasic( "  Port: " + localPort );
+        log.logBasic( "  Debug mode: " + debug );
       }
       
       ProcessBuilder
           processBuilder =
-          new ProcessBuilder( m_pythonCommand, serverScript, "" + localPort, debug ? "debug" : "" );
-      m_serverProcess = processBuilder.start();
+          new ProcessBuilder( pythonCommand, serverScript, "" + localPort, debug ? "debug" : "" );
+      serverProcess = processBuilder.start();
       
       // Start a thread to capture error output from the Python process
       Thread errorReaderThread = new Thread() {
         @Override public void run() {
           try {
             BufferedReader errorReader = new BufferedReader(
-                new InputStreamReader( m_serverProcess.getErrorStream() ) );
+                new InputStreamReader( serverProcess.getErrorStream() ) );
             String line;
             while ( ( line = errorReader.readLine() ) != null ) {
-              if ( m_log != null ) {
-                m_log.logError( "Python server error: " + line );
+              if ( log != null ) {
+                log.logError( "Python server error: " + line );
               } else {
                 System.err.println( "Python server error: " + line );
               }
@@ -816,15 +816,15 @@ public class PythonSession {
       errorReaderThread.setDaemon( true );
       errorReaderThread.start();
       
-      if ( m_log != null ) {
-        m_log.logBasic( "Python server process started, waiting for connection..." );
+      if ( log != null ) {
+        log.logBasic( "Python server process started, waiting for connection..." );
       }
     }
     try {
       acceptThread.join();
     } catch ( InterruptedException e ) {
-      if ( m_log != null ) {
-        m_log.logError( "Interrupted while waiting for server connection" );
+      if ( log != null ) {
+        log.logError( "Interrupted while waiting for server connection" );
       }
     }
 
@@ -832,7 +832,7 @@ public class PythonSession {
   }
 
   public void setLog( ILogChannel log ) {
-    m_log = log;
+    this.log = log;
   }
 
   /**
@@ -916,7 +916,7 @@ public class PythonSession {
       boolean debug, ILogChannel log ) throws HopException {
     String key = pythonCommand + ( ownerID != null && ownerID.length() > 0 ? ownerID : "" );
 
-    if ( !m_pythonServers.containsKey( key ) ) {
+    if ( !pythonServers.containsKey( key ) ) {
       try {
         new PythonSession( pythonCommand, ownerID, pathEntries, false, log );
       } catch ( IOException ex ) {
@@ -924,7 +924,7 @@ public class PythonSession {
       }
     }
 
-    String envCheckResults = m_pythonEnvCheckResults.get(key);
+    String envCheckResults = pythonEnvCheckResults.get(key);
     boolean hasErrors = (envCheckResults.contains("is not available") &&
         !envCheckResults.contains("Apache Arrow support not available"))
         || envCheckResults.contains("does not meet")
@@ -960,11 +960,11 @@ public class PythonSession {
   public static String getPythonEnvCheckResults( String pythonCommand, String ownerID ) throws HopException {
     String key = pythonCommand + ( ownerID != null && ownerID.length() > 0 ? ownerID : "" );
 
-    if ( !m_pythonEnvCheckResults.containsKey( key ) ) {
+    if ( !pythonEnvCheckResults.containsKey( key ) ) {
       throw new HopException( "The specified server/environment (" + key + ") does not seem to exist!" );
     }
 
-    return m_pythonEnvCheckResults.get( key );
+    return pythonEnvCheckResults.get( key );
   }
 
   /**
@@ -978,8 +978,8 @@ public class PythonSession {
   public void rowsToPythonDataFrame( IRowMeta rowMeta, List<Object[]> rows, String pythonFrameName )
       throws HopException {
     try {
-      ServerUtils.sendRowsToPandasDataFrame( m_log, rowMeta, rows, pythonFrameName, m_localSocket.getOutputStream(),
-          m_localSocket.getInputStream() );
+      ServerUtils.sendRowsToPandasDataFrame( log, rowMeta, rows, pythonFrameName, localSocket.getOutputStream(),
+          localSocket.getInputStream() );
     } catch ( IOException ex ) {
       throw new HopException( ex );
     }
@@ -996,8 +996,8 @@ public class PythonSession {
   public RowMetaAndRows rowsFromPythonDataFrame( String frameName, boolean includeRowIndex ) throws HopException {
     try {
       return ServerUtils
-          .receiveRowsFromPandasDataFrame( m_log, frameName, includeRowIndex, m_localSocket.getOutputStream(),
-              m_localSocket.getInputStream() );
+          .receiveRowsFromPandasDataFrame( log, frameName, includeRowIndex, localSocket.getOutputStream(),
+              localSocket.getInputStream() );
     } catch ( IOException ex ) {
       throw new HopException( ex );
     }
@@ -1014,13 +1014,13 @@ public class PythonSession {
   public void rowsToPythonDataFrameWithArrow( IRowMeta rowMeta, List<Object[]> rows, String pythonFrameName )
       throws HopException {
     try {
-      if ( m_useArrow && m_arrowAvailable ) {
-        ServerUtils.sendRowsToPandasDataFrameArrow( m_log, rowMeta, rows, pythonFrameName, 
-            m_localSocket.getOutputStream(), m_localSocket.getInputStream() );
+      if ( useArrow && arrowAvailable ) {
+        ServerUtils.sendRowsToPandasDataFrameArrow( log, rowMeta, rows, pythonFrameName, 
+            localSocket.getOutputStream(), localSocket.getInputStream() );
       } else {
         // Fall back to CSV
-        ServerUtils.sendRowsToPandasDataFrame( m_log, rowMeta, rows, pythonFrameName, 
-            m_localSocket.getOutputStream(), m_localSocket.getInputStream() );
+        ServerUtils.sendRowsToPandasDataFrame( log, rowMeta, rows, pythonFrameName, 
+            localSocket.getOutputStream(), localSocket.getInputStream() );
       }
     } catch ( IOException ex ) {
       throw new HopException( ex );
@@ -1038,13 +1038,13 @@ public class PythonSession {
   public RowMetaAndRows rowsFromPythonDataFrameWithArrow( String frameName, boolean includeRowIndex ) 
       throws HopException {
     try {
-      if ( m_useArrow && m_arrowAvailable ) {
-        return ServerUtils.receiveRowsFromPandasDataFrameArrow( m_log, frameName, includeRowIndex, 
-            m_localSocket.getOutputStream(), m_localSocket.getInputStream() );
+      if ( useArrow && arrowAvailable ) {
+        return ServerUtils.receiveRowsFromPandasDataFrameArrow( log, frameName, includeRowIndex, 
+            localSocket.getOutputStream(), localSocket.getInputStream() );
       } else {
         // Fall back to CSV
-        return ServerUtils.receiveRowsFromPandasDataFrame( m_log, frameName, includeRowIndex, 
-            m_localSocket.getOutputStream(), m_localSocket.getInputStream() );
+        return ServerUtils.receiveRowsFromPandasDataFrame( log, frameName, includeRowIndex, 
+            localSocket.getOutputStream(), localSocket.getInputStream() );
       }
     } catch ( IOException ex ) {
       throw new HopException( ex );
@@ -1057,7 +1057,7 @@ public class PythonSession {
    * @param useArrow true to use Arrow if available
    */
   public void setUseArrow( boolean useArrow ) {
-    m_useArrow = useArrow;
+    this.useArrow = useArrow;
   }
 
   /**
@@ -1066,7 +1066,7 @@ public class PythonSession {
    * @return true if Arrow is available in Python
    */
   public boolean isArrowAvailable() {
-    return m_arrowAvailable;
+    return arrowAvailable;
   }
 
   /**
@@ -1078,8 +1078,8 @@ public class PythonSession {
    */
   public boolean checkIfPythonVariableIsSet( String pyVarName ) throws HopException {
     try {
-      return ServerUtils.checkIfPythonVariableIsSet( m_log, pyVarName, m_localSocket.getInputStream(),
-          m_localSocket.getOutputStream() );
+      return ServerUtils.checkIfPythonVariableIsSet( log, pyVarName, localSocket.getInputStream(),
+          localSocket.getOutputStream() );
     } catch ( IOException ex ) {
       throw new HopException( ex );
     }
@@ -1099,7 +1099,7 @@ public class PythonSession {
    */
   public List<String> getPythonDebugBuffer() throws HopException {
     try {
-      return ServerUtils.receiveDebugBuffer( m_localSocket.getOutputStream(), m_localSocket.getInputStream(), m_log );
+      return ServerUtils.receiveDebugBuffer( localSocket.getOutputStream(), localSocket.getInputStream(), log );
     } catch ( IOException ex ) {
       throw new HopException( ex );
     }
@@ -1117,7 +1117,7 @@ public class PythonSession {
   public PythonVariableType getPythonVariableType( String varName ) throws HopException {
     try {
       return ServerUtils
-          .getPythonVariableType( varName, m_localSocket.getOutputStream(), m_localSocket.getInputStream(), m_log );
+          .getPythonVariableType( varName, localSocket.getOutputStream(), localSocket.getInputStream(), log );
     } catch ( IOException ex ) {
       throw new HopException( ex );
     }
@@ -1134,7 +1134,7 @@ public class PythonSession {
   public List<String> executeScript( String pyScript ) throws HopException {
     try {
       return ServerUtils
-          .executeUserScript( pyScript, m_localSocket.getOutputStream(), m_localSocket.getInputStream(), m_log );
+          .executeUserScript( pyScript, localSocket.getOutputStream(), localSocket.getInputStream(), log );
     } catch ( IOException ex ) {
       throw new HopException( ex );
     }
@@ -1151,7 +1151,7 @@ public class PythonSession {
   public BufferedImage getImageFromPython( String varName ) throws HopException {
     try {
       return ServerUtils
-          .getPNGImageFromPython( varName, m_localSocket.getOutputStream(), m_localSocket.getInputStream(), m_log );
+          .getPNGImageFromPython( varName, localSocket.getOutputStream(), localSocket.getInputStream(), log );
     } catch ( IOException ex ) {
       throw new HopException( ex );
     }
@@ -1167,8 +1167,8 @@ public class PythonSession {
   public String getVariableValueFromPythonAsPlainString( String varName ) throws HopException {
     try {
       return ServerUtils
-          .receivePickledVariableValue( varName, m_localSocket.getOutputStream(), m_localSocket.getInputStream(), true,
-              m_log );
+          .receivePickledVariableValue( varName, localSocket.getOutputStream(), localSocket.getInputStream(), true,
+              log );
     } catch ( IOException ex ) {
       throw new HopException( ex );
     }
@@ -1178,56 +1178,56 @@ public class PythonSession {
    * Shutdown the python server
    */
   private void shutdown() {
-    if ( !m_shutdown ) {
+    if ( !shutdown ) {
       try {
-        m_shutdown = true;
-        if ( m_localSocket != null ) {
-          if ( m_log == null ) {
+        shutdown = true;
+        if ( localSocket != null ) {
+          if ( log == null ) {
             System.err.println( "Sending shutdown command..." );
-          } else if ( m_log.isDebug() ) {
-            m_log.logDebug( "Sending shutdown command..." );
+          } else if ( log.isDebug() ) {
+            log.logDebug( "Sending shutdown command..." );
           }
-          if ( m_log == null || m_log.isDebug() ) {
+          if ( log == null || log.isDebug() ) {
             List<String>
                 outAndErr =
                 ServerUtils
-                    .receiveDebugBuffer( m_localSocket.getOutputStream(), m_localSocket.getInputStream(), m_log );
+                    .receiveDebugBuffer( localSocket.getOutputStream(), localSocket.getInputStream(), log );
             if ( outAndErr.get( 0 ).length() > 0 ) {
-              if ( m_log == null ) {
+              if ( log == null ) {
                 System.err.println( "Python debug std out:\n" + outAndErr.get( 0 ) + "\n" );
               } else {
-                m_log.logDebug( "Python debug std out:\n" + outAndErr.get( 0 ) + "\n" );
+                log.logDebug( "Python debug std out:\n" + outAndErr.get( 0 ) + "\n" );
               }
             }
             if ( outAndErr.get( 1 ).length() > 0 ) {
-              if ( m_log == null ) {
+              if ( log == null ) {
                 System.err.println( "Python debug std err:\n" + outAndErr.get( 1 ) + "\n" );
               } else {
-                m_log.logDebug( "Python debug std err:\n" + outAndErr.get( 1 ) + "\n" );
+                log.logDebug( "Python debug std err:\n" + outAndErr.get( 1 ) + "\n" );
               }
             }
           }
-          ServerUtils.sendServerShutdown( m_localSocket.getOutputStream() );
-          m_localSocket.close();
-          if ( m_serverProcess != null ) {
-            m_serverProcess.destroy();
-            m_serverProcess = null;
+          ServerUtils.sendServerShutdown( localSocket.getOutputStream() );
+          localSocket.close();
+          if ( serverProcess != null ) {
+            serverProcess.destroy();
+            serverProcess = null;
           }
         }
 
-        if ( m_serverSocket != null ) {
-          m_serverSocket.close();
+        if ( serverSocket != null ) {
+          serverSocket.close();
         }
         s_sessionSingleton = null;
       } catch ( Exception ex ) {
         ex.printStackTrace();
-        if ( m_pythonPID > 0 ) {
+        if ( pythonPID > 0 ) {
           // try to kill process, just in case
           ProcessBuilder killer;
           if ( System.getProperty( "os.name" ).toLowerCase().contains( "win" ) ) {
-            killer = new ProcessBuilder( "taskkill", "/F", "/PID", "" + m_pythonPID );
+            killer = new ProcessBuilder( "taskkill", "/F", "/PID", "" + pythonPID );
           } else {
-            killer = new ProcessBuilder( "kill", "-9", "" + m_pythonPID );
+            killer = new ProcessBuilder( "kill", "-9", "" + pythonPID );
           }
           try {
             killer.start();
@@ -1236,8 +1236,8 @@ public class PythonSession {
           }
         }
       } finally {
-        if ( m_serverProcess != null ) {
-          m_serverProcess.destroy();
+        if ( serverProcess != null ) {
+          serverProcess.destroy();
         }
       }
     }
@@ -1276,9 +1276,9 @@ public class PythonSession {
 
       if ( session.checkIfPythonVariableIsSet( "test" ) ) {
         RowMetaAndRows fromPy = session.rowsFromPythonDataFrame( "test", false );
-        System.err.println( "Nubmer of field metas returned: " + fromPy.m_rowMeta.size() );
-        System.err.println( "Number of rows returned: " + fromPy.m_rows.length );
-        for ( IValueMeta v : fromPy.m_rowMeta.getValueMetaList() ) {
+        System.err.println( "Nubmer of field metas returned: " + fromPy.rowMeta.size() );
+        System.err.println( "Number of rows returned: " + fromPy.rows.length );
+        for ( IValueMeta v : fromPy.rowMeta.getValueMetaList() ) {
           System.err.println( "Col: " + v.getName() + " Type: " + v.getType() );
         }
       } else {

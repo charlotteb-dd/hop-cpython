@@ -62,56 +62,56 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 
   private static Class<?> PKG = CPythonScriptExecutorMeta.class;
 
-  protected CPythonScriptExecutorData m_data;
-  protected CPythonScriptExecutorMeta m_meta;
+  protected CPythonScriptExecutorData data;
+  protected CPythonScriptExecutorMeta meta;
 
-  protected boolean m_noInputRowSets = false;
+  protected boolean noInputRowSets = false;
 
   public CPythonScriptExecutor( TransformMeta transformMeta, CPythonScriptExecutorMeta meta,
       CPythonScriptExecutorData data, int copyNr, PipelineMeta pipelineMeta, Pipeline pipeline ) {
     super( transformMeta, meta, data, copyNr, pipelineMeta, pipeline );
 
-    m_meta = meta;
-    m_data = data;
+    this.meta = meta;
+    this.data = data;
   }
 
   public boolean init() {
     if ( super.init() ) {
       try {
-        if ( org.apache.hop.core.util.Utils.isEmpty( m_meta.getScript() ) && org.apache.hop.core.util.Utils
-            .isEmpty( m_meta.getLoadScriptFile() ) ) {
+        if ( org.apache.hop.core.util.Utils.isEmpty( meta.getScript() ) && org.apache.hop.core.util.Utils
+            .isEmpty( meta.getLoadScriptFile() ) ) {
           throw new HopException( BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.NoScriptProvided" ) );
         }
 
-        if ( m_meta.getFrameNames() != null && m_meta.getFrameNames().size() > 0 ) {
-          if ( m_meta.getStepIOMeta().getInfoStreams().size() != m_meta.getFrameNames().size() ) {
+        if ( meta.getFrameNames() != null && meta.getFrameNames().size() > 0 ) {
+          if ( meta.getStepIOMeta().getInfoStreams().size() != meta.getFrameNames().size() ) {
             throw new HopException(
                 BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.InputStreamToFrameNameMismatch" ) );
           }
         }
 
-        if ( m_data.m_script == null ) {
+        if ( data.script == null ) {
           // loading from a file overrides any user-supplied script
-          if ( m_meta.isLoadScriptAtRuntime() ) {
-            String scriptFile = resolve( m_meta.getLoadScriptFile() );
+          if ( meta.isLoadScriptAtRuntime() ) {
+            String scriptFile = resolve( meta.getLoadScriptFile() );
             if ( org.apache.hop.core.util.Utils.isEmpty( scriptFile ) ) {
               throw new HopException(
                   BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.NoScriptFileNameProvided" ) );
             }
 
-            m_data.m_script = CPythonScriptExecutorData.loadScriptFromFile( scriptFile );
+            data.script = CPythonScriptExecutorData.loadScriptFromFile( scriptFile );
           } else {
-            m_data.m_script = m_meta.getScript();
+            data.script = meta.getScript();
           }
         }
 
-        if ( !m_data.m_includeInputAsOutput ) {
-          m_data.m_includeInputAsOutput = m_meta.isIncludeInputAsOutput();
+        if ( !data.includeInputAsOutput ) {
+          data.includeInputAsOutput = meta.isIncludeInputAsOutput();
         }
 
         // check python availability
         CPythonScriptExecutorData
-            .initPython( m_meta.getPythonCommand(), m_meta.getServerID(), m_meta.getPyPathEntries(), this, getLogChannel() );
+            .initPython( meta.getPythonCommand(), meta.getServerID(), meta.getPyPathEntries(), this, getLogChannel() );
       } catch ( HopException ex ) {
         logError( ex.getMessage(), ex ); //$NON-NLS-1$
 
@@ -129,56 +129,56 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
     if ( first ) {
       first = false;
 
-      List<IStream> infoStreams = m_meta.getStepIOMeta().getInfoStreams();
+      List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
       IRowMeta[] infos = new IRowMeta[infoStreams.size()];
-      m_data.m_incomingRowSets = new ArrayList<IRowSet>();
+      data.incomingRowSets = new ArrayList<IRowSet>();
 
       if ( infoStreams.size() == 0 ) {
-        m_noInputRowSets = true;
+        noInputRowSets = true;
       } else {
-        String rowsToProcess = m_meta.getRowsToProcess();
-        String rowsToProcessSize = resolve( m_meta.getRowsToProcessSize() );
+        String rowsToProcess = meta.getRowsToProcess();
+        String rowsToProcessSize = resolve( meta.getRowsToProcessSize() );
 
         if ( rowsToProcess.equals( BaseMessages
             .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.BatchEntry.Label" ) ) ) {
-          m_data.m_batchSize = Integer.parseInt( rowsToProcessSize.isEmpty() ? "0" : rowsToProcessSize );
+          data.batchSize = Integer.parseInt( rowsToProcessSize.isEmpty() ? "0" : rowsToProcessSize );
         } else if ( rowsToProcess.equals( BaseMessages
             .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.RowByRowEntry.Label" ) ) ) {
-          m_data.m_batchSize = 1;
+          data.batchSize = 1;
         } else {
-          m_data.m_batchSize = 0;
+          data.batchSize = 0;
         }
 
-        String reservoirSamplersSize = resolve( m_meta.getReservoirSamplingSize() );
-        boolean doingReservoirSampling = m_meta.isDoingReservoirSampling();
+        String reservoirSamplersSize = resolve( meta.getReservoirSamplingSize() );
+        boolean doingReservoirSampling = meta.isDoingReservoirSampling();
         if ( doingReservoirSampling ) {
-          m_data.m_reservoirSamplersSize =
+          data.reservoirSamplersSize =
               Integer.parseInt( reservoirSamplersSize.isEmpty() ? "0" : reservoirSamplersSize );
         } else {
-          m_data.m_reservoirSamplersSize = 0;
+          data.reservoirSamplersSize = 0;
         }
 
         // check for reservoir sampling and set up Reservoirs
         if ( !doingReservoirSampling ) {
           for ( int i = 0; i < infoStreams.size(); i++ ) {
-            m_data.m_frameBuffers.add( new ArrayList<Object[]>() );
+            data.frameBuffers.add( new ArrayList<Object[]>() );
           }
         } else {
-          m_data.m_reservoirSamplers = new ArrayList<ReservoirSamplingData>();
-          String seed = resolve( m_meta.getSeed() );
+          data.reservoirSamplers = new ArrayList<ReservoirSamplingData>();
+          String seed = resolve( meta.getSeed() );
           for ( int i = 0; i < infoStreams.size(); i++ ) {
             ReservoirSamplingData rs = new ReservoirSamplingData();
             rs.setProcessingMode( ReservoirSamplingData.PROC_MODE.SAMPLING );
-            if ( m_data.m_reservoirSamplersSize < 0 && ( doingReservoirSampling || infoStreams.size() > 1 ) ) {
+            if ( data.reservoirSamplersSize < 0 && ( doingReservoirSampling || infoStreams.size() > 1 ) ) {
               // The reservoir sampler is disabled when the sample size is < 0, so we have to
               // set some arbitrarily large sample size in this case in order to simulate the
               // "don't sample, just store all rows" scenario
-              m_data.m_reservoirSamplersSize = CPythonScriptExecutorData.DEFAULT_RESERVOIR_SAMPLING_STORE_ALL_ROWS_SIZE;
+              data.reservoirSamplersSize = CPythonScriptExecutorData.DEFAULT_RESERVOIR_SAMPLING_STORE_ALL_ROWS_SIZE;
             }
-            rs.initialize( m_data.m_reservoirSamplersSize, seed.isEmpty() ? 0 : Integer.parseInt( seed ) );
-            m_data.m_reservoirSamplers.add( rs );
+            rs.initialize( data.reservoirSamplersSize, seed.isEmpty() ? 0 : Integer.parseInt( seed ) );
+            data.reservoirSamplers.add( rs );
 
-            if ( m_data.m_batchSize == 1 ) { //only the first input frame should be considered
+            if ( data.batchSize == 1 ) { //only the first input frame should be considered
               break;
             }
           }
@@ -195,7 +195,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
                 .getString( PKG, "CPythonScriptExecutor.Error.UnableToFindSpecifiedInputStep",
                     infoStreams.get( i ).getTransformMeta() ) ); //$NON-NLS-1$
           }
-          m_data.m_incomingRowSets.add( current );
+          data.incomingRowSets.add( current );
           infos[i] = associatedRowMeta;
 
           if ( infos[i] == null ) {
@@ -203,17 +203,17 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
           }
         }
 
-        m_data.m_finishedRowSets = new boolean[m_data.m_incomingRowSets.size()];
-        m_data.m_infoMetas.addAll( Arrays.asList( infos ) );
+        data.finishedRowSets = new boolean[data.incomingRowSets.size()];
+        data.infoMetas.addAll( Arrays.asList( infos ) );
       }
-      m_data.m_outputRowMeta = new RowMeta();
-      m_data.m_scriptOnlyOutputRowMeta = new RowMeta();
-      m_data.m_incomingFieldsIncludedInOutputRowMeta = new RowMeta();
+      data.outputRowMeta = new RowMeta();
+      data.scriptOnlyOutputRowMeta = new RowMeta();
+      data.incomingFieldsIncludedInOutputRowMeta = new RowMeta();
 
-      m_meta.getFields( m_data.m_outputRowMeta, getTransformName(), infos, null, null, null );
-      m_meta.determineInputFieldScriptFieldSplit( m_data.m_outputRowMeta, m_data.m_scriptOnlyOutputRowMeta,
-          m_data.m_incomingFieldsIncludedInOutputRowMeta, infos, getTransformName() );
-      m_data.initNonScriptOutputIndexLookup();
+      meta.getFields( data.outputRowMeta, getTransformName(), infos, null, null, null );
+      meta.determineInputFieldScriptFieldSplit( data.outputRowMeta, data.scriptOnlyOutputRowMeta,
+          data.incomingFieldsIncludedInOutputRowMeta, infos, getTransformName() );
+      data.initNonScriptOutputIndexLookup();
     }
 
     if ( isStopped() ) {
@@ -221,25 +221,25 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
     }
 
     boolean allDone = true;
-    for ( int i = 0; i < m_data.m_incomingRowSets.size(); i++ ) {
+    for ( int i = 0; i < data.incomingRowSets.size(); i++ ) {
       if ( isStopped() ) {
         return false;
       }
 
-      if ( !m_data.m_finishedRowSets[i] ) {
-        IRowSet r = m_data.m_incomingRowSets.get( i );
+      if ( !data.finishedRowSets[i] ) {
+        IRowSet r = data.incomingRowSets.get( i );
         Object[] row = getRowFrom( r );
 
         if ( row != null ) {
           allDone = false;
 
-          if ( !m_meta.isDoingReservoirSampling() ) {
-            m_data.m_frameBuffers.get( i ).add( row );
+          if ( !meta.isDoingReservoirSampling() ) {
+            data.frameBuffers.get( i ).add( row );
           } else {
-            m_data.m_reservoirSamplers.get( i ).processRow( row );
+            data.reservoirSamplers.get( i ).processRow( row );
           }
         } else {
-          m_data.m_finishedRowSets[i] = true;
+          data.finishedRowSets[i] = true;
         }
       }
     }
@@ -264,13 +264,13 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
     PythonSession session = null;
 
     try {
-      if ( !m_noInputRowSets && !m_meta.isDoingReservoirSampling() && m_data.m_incomingRowSets.size() >= 1 ) {
+      if ( !noInputRowSets && !meta.isDoingReservoirSampling() && data.incomingRowSets.size() >= 1 ) {
         boolean framesAdded = false;
-        for ( int i = 0; i < m_data.m_frameBuffers.size(); i++ ) {
-          List<Object[]> frameBuffer = m_data.m_frameBuffers.get( i );
-          if ( (frameBuffer.size() == m_data.m_batchSize && frameBuffer.size() > 0) || ( allDone && frameBuffer.size() > 0 ) ) {
+        for ( int i = 0; i < data.frameBuffers.size(); i++ ) {
+          List<Object[]> frameBuffer = data.frameBuffers.get( i );
+          if ( (frameBuffer.size() == data.batchSize && frameBuffer.size() > 0) || ( allDone && frameBuffer.size() > 0 ) ) {
             // push buffer into python and process result
-            String frameName = resolve( m_meta.getFrameNames().get( i ) );
+            String frameName = resolve( meta.getFrameNames().get( i ) );
 
             logDetailed( BaseMessages.getString( PKG, "CPythonScriptExecutor.Message.PushingBatchIntoPandasDataFrame",
                 //$NON-NLS-1$
@@ -279,11 +279,11 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
             // session = CPythonScriptExecutorData.acquirePySession(this, getLogChannel(), this);
             session =
                 CPythonScriptExecutorData
-                    .acquirePySession( this, m_meta.getPythonCommand(), m_meta.getServerID(), getLogChannel(),
+                    .acquirePySession( this, meta.getPythonCommand(), meta.getServerID(), getLogChannel(),
                         this );
             // Configure Arrow usage based on meta configuration
-            session.setUseArrow( m_meta.isUseArrow() );
-            rowsToPyDataFrame( session, m_data.m_incomingRowSets.get( i ).getRowMeta(), frameBuffer, frameName );
+            session.setUseArrow( meta.isUseArrow() );
+            rowsToPyDataFrame( session, data.incomingRowSets.get( i ).getRowMeta(), frameBuffer, frameName );
             framesAdded = true;
           } else {
             framesAdded = false;
@@ -291,25 +291,25 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
         }
 
         if ( framesAdded ) {
-          executeScriptAndProcessResult( session, m_meta.isContinueOnUnsetVars() );
+          executeScriptAndProcessResult( session, meta.isContinueOnUnsetVars() );
           //clean the current frame buffers
-          for ( List<Object[]> frame : m_data.m_frameBuffers ) {
+          for ( List<Object[]> frame : data.frameBuffers ) {
             frame.clear();
           }
         }
-      } else if ( !m_noInputRowSets && allDone ) {
+      } else if ( !noInputRowSets && allDone ) {
         boolean framesAdded = false;
         session =
             CPythonScriptExecutorData
-                .acquirePySession( this, m_meta.getPythonCommand(), m_meta.getServerID(), getLogChannel(), this );
+                .acquirePySession( this, meta.getPythonCommand(), meta.getServerID(), getLogChannel(), this );
         // Configure Arrow usage based on meta configuration
-        session.setUseArrow( m_meta.isUseArrow() );
+        session.setUseArrow( meta.isUseArrow() );
 
         // grab all the reservoirs an push to python; then process result
         logDetailed( BaseMessages.getString( PKG, "CPythonScriptExecutor.Message.RetrievingReservoirs" ) );
-        for ( int j = 0; j < m_data.m_reservoirSamplers.size(); j++ ) {
-          ReservoirSamplingData reservoirSamplers = m_data.m_reservoirSamplers.get( j );
-          String frameName = resolve( m_meta.getFrameNames().get( j ) );
+        for ( int j = 0; j < data.reservoirSamplers.size(); j++ ) {
+          ReservoirSamplingData reservoirSamplers = data.reservoirSamplers.get( j );
+          String frameName = resolve( meta.getFrameNames().get( j ) );
           List<Object[]> sample = reservoirSamplers.getSample();
           CPythonScriptExecutorData.pruneNullRowsFromSample( sample );
 
@@ -320,80 +320,80 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
             logDetailed( BaseMessages
                 .getString( PKG, "CPythonScriptExecutor.Message.SampleSize", sample.size() ) ); //$NON-NLS-1$
 
-            if ( m_data.m_batchSize == 1 ) { //we need to process row by row the sample. we will only have one sample
+            if ( data.batchSize == 1 ) { //we need to process row by row the sample. we will only have one sample
               List<Object[]> sampleSpliced = new ArrayList<Object[]>();
               for ( int k = 0; k < sample.size(); k++ ) {
                 Object[] objects = sample.get( k );
                 session =
                     CPythonScriptExecutorData
-                        .acquirePySession( this, m_meta.getPythonCommand(), m_meta.getServerID(), getLogChannel(),
+                        .acquirePySession( this, meta.getPythonCommand(), meta.getServerID(), getLogChannel(),
                             this );
                 // Configure Arrow usage based on meta configuration
-                session.setUseArrow( m_meta.isUseArrow() );
+                session.setUseArrow( meta.isUseArrow() );
                 sampleSpliced.clear();
                 sampleSpliced.add( objects );
-                rowsToPyDataFrame( session, m_data.m_incomingRowSets.get( j ).getRowMeta(), sampleSpliced, frameName );
-                m_data.m_rowByRowReservoirSampleIndex = k;
+                rowsToPyDataFrame( session, data.incomingRowSets.get( j ).getRowMeta(), sampleSpliced, frameName );
+                data.rowByRowReservoirSampleIndex = k;
 
-                executeScriptAndProcessResult( session, m_meta.isContinueOnUnsetVars() );
+                executeScriptAndProcessResult( session, meta.isContinueOnUnsetVars() );
 
                 if ( session != null ) {
                   CPythonScriptExecutorData
-                      .releasePySession( this, m_meta.getPythonCommand(), m_meta.getServerID(), this );
+                      .releasePySession( this, meta.getPythonCommand(), meta.getServerID(), this );
                 }
               }
 
             } else { //process the full sample
-              rowsToPyDataFrame( session, m_data.m_incomingRowSets.get( j ).getRowMeta(), sample, frameName );
+              rowsToPyDataFrame( session, data.incomingRowSets.get( j ).getRowMeta(), sample, frameName );
             }
           }
         }
 
-        if ( m_data.m_batchSize != 1 ) {
-          executeScriptAndProcessResult( session, m_meta.isContinueOnUnsetVars() );
+        if ( data.batchSize != 1 ) {
+          executeScriptAndProcessResult( session, meta.isContinueOnUnsetVars() );
         }
-      } else if ( m_noInputRowSets ) {
+      } else if ( noInputRowSets ) {
         // just get results from script as we have no inputs to us
         session =
             CPythonScriptExecutorData
-                .acquirePySession( this, m_meta.getPythonCommand(), m_meta.getServerID(), getLogChannel(), this );
+                .acquirePySession( this, meta.getPythonCommand(), meta.getServerID(), getLogChannel(), this );
         // Configure Arrow usage based on meta configuration
-        session.setUseArrow( m_meta.isUseArrow() );
-        executeScriptAndProcessResult( session, m_meta.isContinueOnUnsetVars() );
+        session.setUseArrow( meta.isUseArrow() );
+        executeScriptAndProcessResult( session, meta.isContinueOnUnsetVars() );
       }
     } finally {
       if ( session != null ) {
-        CPythonScriptExecutorData.releasePySession( this, m_meta.getPythonCommand(), m_meta.getServerID(), this );
+        CPythonScriptExecutorData.releasePySession( this, meta.getPythonCommand(), meta.getServerID(), this );
       }
     }
   }
 
   protected void executeScriptAndProcessResult( PythonSession session, boolean continueOnUnsetVars )
       throws HopException {
-    executeScript( session, m_data.m_script );
+    executeScript( session, data.script );
 
     Object[][] scriptOutRows = null;
-    if ( m_meta.getPyVarsToGet().size() == 1 ) {
+    if ( meta.getPyVarsToGet().size() == 1 ) {
       // check for existence first...
-      if ( !checkIfPythonVariableIsSet( session, m_meta.getPyVarsToGet().get( 0 ) ) ) {
+      if ( !checkIfPythonVariableIsSet( session, meta.getPyVarsToGet().get( 0 ) ) ) {
         if ( !continueOnUnsetVars ) {
           throw new HopException( BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.PythonVariableNotSet",
-              m_meta.getPyVarsToGet().get( 0 ) ) );
+              meta.getPyVarsToGet().get( 0 ) ) );
         }
       } else {
         // Are we getting a variable (image/text) or a frame?
         PythonSession.PythonVariableType
             type =
-            getPythonVariableType( session, m_meta.getPyVarsToGet().get( 0 ) );
+            getPythonVariableType( session, meta.getPyVarsToGet().get( 0 ) );
         Object[][] outputRows = new Object[1][];
         if ( type == PythonSession.PythonVariableType.DataFrame ) {
           outputRows =
-              m_data.constructOutputRowsFromFrame( session, m_meta.getPyVarsToGet().get( 0 ),
-                  m_meta.isIncludeRowIndex(), getLogChannel() );
+              data.constructOutputRowsFromFrame( session, meta.getPyVarsToGet().get( 0 ),
+                  meta.isIncludeRowIndex(), getLogChannel() );
           includeInputInOutput( outputRows );
         } else {
           outputRows[0] =
-              m_data.constructOutputRowNonFrame( session, m_meta.getPyVarsToGet(), continueOnUnsetVars,
+              data.constructOutputRowNonFrame( session, meta.getPyVarsToGet(), continueOnUnsetVars,
                   getLogChannel() );
           includeInputInOutput( outputRows );
         }
@@ -402,17 +402,17 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
       // more than one variable to get - only non-frame case
       Object[][] outputRows = new Object[1][];
       outputRows[0] =
-          m_data.constructOutputRowNonFrame( session, m_meta.getPyVarsToGet(), continueOnUnsetVars,
+          data.constructOutputRowNonFrame( session, meta.getPyVarsToGet(), continueOnUnsetVars,
               getLogChannel() );
       includeInputInOutput( outputRows );
     }
   }
 
   protected void includeInputInOutput( Object[][] outputRows ) throws HopException {
-    if ( !m_meta.isIncludeInputAsOutput() ) {
+    if ( !meta.isIncludeInputAsOutput() ) {
 
       for ( Object[] r : outputRows ) {
-        putRow( m_data.m_outputRowMeta, r );
+        putRow( data.outputRowMeta, r );
       }
 
       return;
@@ -421,18 +421,18 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
     List<Object[]> flattenedInputRows = new ArrayList<Object[]>();
     int[]
         rowCounts =
-        new int[m_meta.isDoingReservoirSampling() ? m_data.m_reservoirSamplers.size() : m_data.m_frameBuffers.size()];
+        new int[meta.isDoingReservoirSampling() ? data.reservoirSamplers.size() : data.frameBuffers.size()];
     // IRowMeta[] infoMetas = new IRowMeta[rowCounts.length];
     int index = 0;
     int sum = 0;
-    if ( !m_meta.isDoingReservoirSampling() ) {
-      for ( List<Object[]> frameBuffer : m_data.m_frameBuffers ) {
+    if ( !meta.isDoingReservoirSampling() ) {
+      for ( List<Object[]> frameBuffer : data.frameBuffers ) {
         sum += frameBuffer.size();
         rowCounts[index++] = sum;
         flattenedInputRows.addAll( frameBuffer );
       }
     } else {
-      for ( ReservoirSamplingData reservoirSamplingData : m_data.m_reservoirSamplers ) {
+      for ( ReservoirSamplingData reservoirSamplingData : data.reservoirSamplers ) {
         sum += reservoirSamplingData.getSample().size();
         rowCounts[index++] = sum;
         flattenedInputRows.addAll( reservoirSamplingData.getSample() );
@@ -445,23 +445,23 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
         index++;
       }
       // get the input row meta corresponding to this row
-      IRowMeta associatedRowMeta = m_data.m_infoMetas.get( index );
+      IRowMeta associatedRowMeta = data.infoMetas.get( index );
       if ( outputRows[i] != null ) {
         Object[] inputRow;
-        if ( m_data.m_batchSize == 1 && m_meta.isDoingReservoirSampling() ) {
-          inputRow = flattenedInputRows.get( m_data.m_rowByRowReservoirSampleIndex );
+        if ( data.batchSize == 1 && meta.isDoingReservoirSampling() ) {
+          inputRow = flattenedInputRows.get( data.rowByRowReservoirSampleIndex );
         } else {
           inputRow = flattenedInputRows.get( i );
         }
-        for ( IValueMeta vm : m_data.m_incomingFieldsIncludedInOutputRowMeta.getValueMetaList() ) {
-          int outputIndex = m_data.m_nonScriptOutputMetaIndexLookup.get( vm.getName() );
+        for ( IValueMeta vm : data.incomingFieldsIncludedInOutputRowMeta.getValueMetaList() ) {
+          int outputIndex = data.nonScriptOutputMetaIndexLookup.get( vm.getName() );
           // is this user selected input field present in the current info input row set?
           int inputIndex = associatedRowMeta.indexOfValue( vm.getName() );
           if ( inputIndex >= 0 ) {
             outputRows[i][outputIndex] = inputRow[inputIndex];
           }
         }
-        putRow( m_data.m_outputRowMeta, outputRows[i] );
+        putRow( data.outputRowMeta, outputRows[i] );
       }
     }
   }

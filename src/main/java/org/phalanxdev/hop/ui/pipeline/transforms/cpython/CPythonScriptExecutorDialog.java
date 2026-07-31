@@ -142,13 +142,13 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   private static final int MARGIN = Const.MARGIN;
   private static int MIDDLE;
 
-  protected CPythonScriptExecutorMeta m_inputMeta;
-  protected CPythonScriptExecutorMeta m_originalMeta;
+  protected CPythonScriptExecutorMeta inputMeta;
+  protected CPythonScriptExecutorMeta originalMeta;
 
   //listeners
   ModifyListener simpleModifyListener = new ModifyListener() {
     @Override public void modifyText( ModifyEvent e ) {
-      m_inputMeta.setChanged();
+      inputMeta.setChanged();
     }
   };
 
@@ -161,22 +161,22 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   public CPythonScriptExecutorDialog( Shell parent, IVariables variables, Object inMeta, PipelineMeta tr, String sname ) {
     super( parent, variables, (BaseTransformMeta) inMeta, tr, sname );
 
-    m_inputMeta = (CPythonScriptExecutorMeta) inMeta;
-    m_originalMeta = (CPythonScriptExecutorMeta) m_inputMeta.clone();
+    inputMeta = (CPythonScriptExecutorMeta) inMeta;
+    originalMeta = (CPythonScriptExecutorMeta) inputMeta.clone();
   }
 
   public CPythonScriptExecutorDialog(Shell parent, IVariables variables, BaseTransformMeta baseTransformMeta,
       PipelineMeta pipelineMeta, String transformName) {
     super(parent, variables, baseTransformMeta, pipelineMeta, transformName);
-    m_inputMeta = (CPythonScriptExecutorMeta) baseTransformMeta;
-    m_originalMeta = (CPythonScriptExecutorMeta) m_inputMeta.clone();
+    inputMeta = (CPythonScriptExecutorMeta) baseTransformMeta;
+    originalMeta = (CPythonScriptExecutorMeta) inputMeta.clone();
   }
 
   public CPythonScriptExecutorDialog(Shell parent, int nr, IVariables variables, Object in, PipelineMeta tr ) {
     super(parent, nr, variables, (BaseTransformMeta) in, tr);
 
-    m_inputMeta = (CPythonScriptExecutorMeta) in;
-    m_originalMeta = (CPythonScriptExecutorMeta) m_inputMeta.clone();
+    inputMeta = (CPythonScriptExecutorMeta) in;
+    originalMeta = (CPythonScriptExecutorMeta) inputMeta.clone();
   }
 
   @Override public String open() {
@@ -186,9 +186,9 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
     shell = new Shell( parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MAX | SWT.MIN );
     props.setLook( shell );
-    setShellImage( shell, m_inputMeta );
+    setShellImage( shell, inputMeta );
 
-    changed = m_inputMeta.hasChanged();
+    changed = inputMeta.hasChanged();
 
     FormLayout formLayout = new FormLayout();
     formLayout.marginWidth = Const.FORM_MARGIN;
@@ -270,9 +270,9 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
       }
     } );
 
-    getData( m_inputMeta );
+    getData( inputMeta );
 
-    m_inputMeta.setChanged( changed );
+    inputMeta.setChanged( changed );
 
     wctfContainer.setSelection( 0 );
     // Set the shell size, based upon previous time...
@@ -710,7 +710,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wcvRowsToProcess.setEditable( false );
     wcvRowsToProcess.addSelectionListener( new SelectionAdapter() {
       @Override public void widgetSelected( SelectionEvent e ) {
-        m_inputMeta.setChanged();
+        inputMeta.setChanged();
         handleRowsToProcessChange();
         if ( wtvInputFrames.getItemCount() > 1 && wbReservoirSampling.getSelection() && wcvRowsToProcess.getText()
             .equals( BaseMessages.getString( PKG,
@@ -764,7 +764,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wbReservoirSampling.setLayoutData( fd );
     wbReservoirSampling.addSelectionListener( new SelectionAdapter() {
       @Override public void widgetSelected( SelectionEvent e ) {
-        m_inputMeta.setChanged();
+        inputMeta.setChanged();
         handleReservoirSamplingChange();
         if ( wtvInputFrames.getItemCount() > 1 && wbReservoirSampling.getSelection() && wcvRowsToProcess.getText()
             .equals( BaseMessages.getString( PKG,
@@ -796,7 +796,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     lastControl = wtvReservoirSamplingSize;
     wtvReservoirSamplingSize.addModifyListener( new ModifyListener() {
       @Override public void modifyText( ModifyEvent e ) {
-        m_inputMeta.setChanged();
+        inputMeta.setChanged();
       }
     } );
   }
@@ -826,7 +826,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     if ( wcvRowsToProcessValue.equals( BaseMessages
         .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.BatchEntry.Label" ) ) ) {
       wtvRowsToProcessSize.setEnabled( true );
-      setItemText( wtvRowsToProcessSize, m_originalMeta.getRowsToProcessSize() );
+      setItemText( wtvRowsToProcessSize, originalMeta.getRowsToProcessSize() );
 
       //reset the other controllers
       wbReservoirSampling.setEnabled( false );
@@ -842,11 +842,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
       //reset the other controllers
       wbReservoirSampling.setEnabled( true );
-      wbReservoirSampling.setSelection( m_originalMeta.isDoingReservoirSampling() );
+      wbReservoirSampling.setSelection( originalMeta.isDoingReservoirSampling() );
       wtvReservoirSamplingSize.setEnabled( wbReservoirSampling.getSelection() );
-      setItemText( wtvReservoirSamplingSize, m_originalMeta.getReservoirSamplingSize() );
-      wtvRandomSeed.setEnabled( m_originalMeta.isDoingReservoirSampling() );
-      wtvRandomSeed.setText( m_originalMeta.getSeed() == null ? "" : m_originalMeta.getSeed() );
+      setItemText( wtvReservoirSamplingSize, originalMeta.getReservoirSamplingSize() );
+      wtvRandomSeed.setEnabled( originalMeta.isDoingReservoirSampling() );
+      wtvRandomSeed.setText( originalMeta.getSeed() == null ? "" : originalMeta.getSeed() );
     } else if ( wcvRowsToProcessValue.equals( BaseMessages
         .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.RowByRowEntry.Label" ) ) ) {
       wtvRowsToProcessSize.setEnabled( false );
@@ -854,11 +854,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
       //reset the other controllers
       wbReservoirSampling.setEnabled( true );
-      wbReservoirSampling.setSelection( m_originalMeta.isDoingReservoirSampling() );
+      wbReservoirSampling.setSelection( originalMeta.isDoingReservoirSampling() );
       wtvReservoirSamplingSize.setEnabled( wbReservoirSampling.getSelection() );
-      setItemText( wtvReservoirSamplingSize, m_originalMeta.getReservoirSamplingSize() );
-      wtvRandomSeed.setEnabled( m_originalMeta.isDoingReservoirSampling() );
-      setItemText( wtvRandomSeed, m_originalMeta.getSeed() );
+      setItemText( wtvReservoirSamplingSize, originalMeta.getReservoirSamplingSize() );
+      wtvRandomSeed.setEnabled( originalMeta.isDoingReservoirSampling() );
+      setItemText( wtvRandomSeed, originalMeta.getSeed() );
     }
   }
 
@@ -906,7 +906,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
                   false );
           smd.open();
         }
-        m_inputMeta.setChanged();
+        inputMeta.setChanged();
       }
     } );
     wbIncludeInputAsOutput
@@ -1185,7 +1185,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
   private void cancel() {
     transformName = null;
-    m_inputMeta.setChanged( changed );
+    inputMeta.setChanged( changed );
     dispose();
   }
 
@@ -1199,10 +1199,10 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
     transformName = wTransformName.getText(); // return value
 
-    setData( m_inputMeta );
-    if ( !m_originalMeta.equals( m_inputMeta ) ) {
-      m_inputMeta.setChanged();
-      changed = m_inputMeta.hasChanged();
+    setData( inputMeta );
+    if ( !originalMeta.equals( inputMeta ) ) {
+      inputMeta.setChanged();
+      changed = inputMeta.hasChanged();
     }
 
     dispose();

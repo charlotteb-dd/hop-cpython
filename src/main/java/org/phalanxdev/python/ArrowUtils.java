@@ -120,7 +120,7 @@ public class ArrowUtils {
       // Read schema and create Hop metadata
       VectorSchemaRoot root = reader.getVectorSchemaRoot();
       Schema schema = root.getSchema();
-      result.m_rowMeta = createHopRowMeta(schema);
+      result.rowMeta = createHopRowMeta(schema);
       
       // Read all batches
       while (reader.loadNextBatch()) {
@@ -129,14 +129,14 @@ public class ArrowUtils {
           Object[] row = new Object[schema.getFields().size()];
           for (int j = 0; j < schema.getFields().size(); j++) {
             FieldVector vector = root.getVector(j);
-            row[j] = getVectorValue(vector, i, result.m_rowMeta.getValueMeta(j));
+            row[j] = getVectorValue(vector, i, result.rowMeta.getValueMeta(j));
           }
           rowsList.add(row);
         }
       }
       
       // Convert list to array
-      result.m_rows = rowsList.toArray(new Object[rowsList.size()][]);
+      result.rows = rowsList.toArray(new Object[rowsList.size()][]);
       
       return result;
     } catch (Exception e) {

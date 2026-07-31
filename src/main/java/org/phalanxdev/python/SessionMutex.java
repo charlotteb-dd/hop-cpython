@@ -28,52 +28,52 @@ package org.phalanxdev.python;
  * @author Mark Hall (mhall{[at]}waikato{[dot]}ac{[dot]}nz)
  */
 public class SessionMutex {
-  private boolean m_verbose;
+  private boolean verbose;
 
   /**
    * defines the current mutex state
    */
-  private boolean m_locked;
+  private boolean locked;
 
   /**
    * thread that m_locked this mutex
    */
-  private Thread m_lockedBy;
+  private Thread lockedBy;
 
   public SessionMutex() {
   }
 
   public SessionMutex( boolean verbose ) {
-    m_verbose = verbose;
+    this.verbose = verbose;
   }
 
   private synchronized void lock() {
-    while ( m_locked ) {
-      if ( m_lockedBy == Thread.currentThread() ) {
+    while ( locked ) {
+      if ( lockedBy == Thread.currentThread() ) {
         System.err.println( "INFO: Mutex detected a deadlock! The application is likely to hang indefinitely!" );
       }
 
-      if ( m_verbose ) {
-        System.out.println( "INFO: " + toString() + " is m_locked by " + m_lockedBy + ", but " + Thread.currentThread()
+      if ( verbose ) {
+        System.out.println( "INFO: " + toString() + " is m_locked by " + lockedBy + ", but " + Thread.currentThread()
             + " waits for release" );
       }
       try {
         wait();
       } catch ( InterruptedException e ) {
-        if ( m_verbose )
+        if ( verbose )
           System.out.println( "INFO: " + toString() + " caught InterruptedException" );
       }
     }
-    m_locked = true;
-    m_lockedBy = Thread.currentThread();
-    if ( m_verbose ) {
-      System.out.println( "INFO: " + toString() + " m_locked by " + m_lockedBy );
+    locked = true;
+    lockedBy = Thread.currentThread();
+    if ( verbose ) {
+      System.out.println( "INFO: " + toString() + " m_locked by " + lockedBy );
     }
   }
 
   public synchronized boolean safeLock() {
-    if ( m_locked && m_lockedBy == Thread.currentThread() ) {
-      if ( m_verbose ) {
+    if ( locked && lockedBy == Thread.currentThread() ) {
+      if ( verbose ) {
         System.out.println( "INFO: " + toString() + " unable to provide safe lock for " + Thread.currentThread() );
       }
       return false;
@@ -83,11 +83,11 @@ public class SessionMutex {
   }
 
   public synchronized void unlock() {
-    if ( m_locked && m_lockedBy != Thread.currentThread() ) {
+    if ( locked && lockedBy != Thread.currentThread() ) {
       System.err.println( "WARNING: Mutex was unlocked by other thread" );
     }
-    m_locked = false;
-    if ( m_verbose ) {
+    locked = false;
+    if ( verbose ) {
       System.out.println( "INFO: " + toString() + " unlocked by " + Thread.currentThread() );
     }
 
