@@ -36,6 +36,7 @@ import org.apache.hop.pipeline.PipelineMeta;
 import org.apache.hop.pipeline.transform.BaseTransformMeta;
 import org.apache.hop.pipeline.transform.ITransformDialog;
 import org.apache.hop.pipeline.transform.stream.IStream;
+import org.apache.hop.ui.core.PropsUi;
 import org.apache.hop.ui.core.dialog.ErrorDialog;
 import org.apache.hop.ui.core.dialog.ShowMessageDialog;
 import org.apache.hop.ui.core.gui.GuiResource;
@@ -139,7 +140,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   private static final int FIRST_PROMPT_RIGHT_PERCENTAGE = 55;
   private static final int SECOND_LABEL_RIGHT_PERCENTAGE = 65;
   private static final int SECOND_PROMPT_RIGHT_PERCENTAGE = 80;
-  private static final int MARGIN = Const.MARGIN;
+  private static final int MARGIN = PropsUi.getMargin(); // Const.MARGIN;
   private static int MIDDLE;
 
   protected CPythonScriptExecutorMeta inputMeta;
@@ -185,14 +186,14 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     Display display = parent.getDisplay();
 
     shell = new Shell( parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MAX | SWT.MIN );
-    props.setLook( shell );
+    PropsUi.setLook(shell); //props.setLook( shell );
     setShellImage( shell, inputMeta );
 
     changed = inputMeta.hasChanged();
 
     FormLayout formLayout = new FormLayout();
-    formLayout.marginWidth = Const.FORM_MARGIN;
-    formLayout.marginHeight = Const.FORM_MARGIN;
+    formLayout.marginWidth = PropsUi.getMargin(); //Const.FORM_MARGIN;
+    formLayout.marginHeight = PropsUi.getMargin(); //Const.FORM_MARGIN;
 
     shell.setLayout( formLayout );
     shell.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.Shell.Title" ) ); //$NON-NLS-1$
@@ -203,7 +204,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlTransformName = new Label( shell, SWT.RIGHT );
     wlTransformName
         .setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.Stepname.Label" ) ); //$NON-NLS-1$
-    props.setLook( wlTransformName );
+    PropsUi.setLook( wlTransformName );
     fdlTransformName = new FormData();
     fdlTransformName.left = new FormAttachment( 0, 0 );
     fdlTransformName.right = new FormAttachment( MIDDLE, -MARGIN );
@@ -211,7 +212,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlTransformName.setLayoutData( fdlTransformName );
     wTransformName = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     wTransformName.setText( transformName );
-    props.setLook( wTransformName );
+    PropsUi.setLook( wTransformName );
     wTransformName.addModifyListener( simpleModifyListener );
     fdTransformName = new FormData();
     fdTransformName.left = new FormAttachment( MIDDLE, 0 );
@@ -221,7 +222,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     lastControl = wTransformName;
 
     wctfContainer = new CTabFolder( shell, SWT.BORDER );
-    props.setLook( wctfContainer, Props.WIDGET_STYLE_TAB );
+    PropsUi.setLook( wctfContainer, Props.WIDGET_STYLE_TAB );
     if (!EnvironmentUtils.getInstance().isWeb()) {
       wctfContainer.setSimple(false);
     }
@@ -307,7 +308,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wctiConfig.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ConfigTab.TabTitle" ) );
 
     wcConfig = new Composite( wctfContainer, SWT.NONE );
-    props.setLook( wcConfig );
+    PropsUi.setLook( wcConfig );
     FormLayout wflConfig = new FormLayout();
     wflConfig.marginWidth = 3;
     wflConfig.marginHeight = 3;
@@ -319,7 +320,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     // Input Frames Label
     Label inputFramesLab = new Label( wcConfig, SWT.RIGHT );
     inputFramesLab.setText( BaseMessages.getString( PKG, "CPythonScriptExecutor.InputFrames.Label" ) );
-    props.setLook( inputFramesLab );
+    PropsUi.setLook( inputFramesLab );
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
     fd.top = new FormAttachment( wgOptions, MARGIN );
@@ -364,20 +365,20 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wctiScript = new CTabItem( wctfContainer, SWT.NONE );
     wctiScript.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ScriptTab.TabTitle" ) ); //$NON-NLS-1$
     wcScript = new Composite( wctfContainer, SWT.NONE );
-    props.setLook( wcScript );
+    PropsUi.setLook( wcScript );
     FormLayout scriptLayout = new FormLayout();
     scriptLayout.marginWidth = 3;
     scriptLayout.marginHeight = 3;
     wcScript.setLayout( scriptLayout );
 
     wlLoadScriptFile = new Label( wcScript, SWT.RIGHT );
-    props.setLook( wlLoadScriptFile );
+    PropsUi.setLook( wlLoadScriptFile );
     wlLoadScriptFile
         .setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.LoadScript.Label" ) ); //$NON-NLS-1$
     wlLoadScriptFile.setLayoutData( getFirstLabelFormData() );
 
     wbLoadScriptFile = new Button( wcScript, SWT.CHECK );
-    props.setLook( wbLoadScriptFile );
+    PropsUi.setLook( wbLoadScriptFile );
     FormData fd = getFirstPromptFormData( wlLoadScriptFile );
     fd.right = null;
     wbLoadScriptFile.setLayoutData( fd );
@@ -419,7 +420,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     } );
 
     wtvScriptLocation = new TextVar( variables, wcScript, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wtvScriptLocation );
+    PropsUi.setLook( wtvScriptLocation );
     fd = new FormData();
     fd.left = new FormAttachment( wlScriptLocation, MARGIN );
     fd.top = new FormAttachment( lastControl, MARGIN );
@@ -428,7 +429,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     lastControl = wtvScriptLocation;
 
     wlScript = new Label( wcScript, SWT.LEFT );
-    props.setLook( wlScript );
+    PropsUi.setLook( wlScript );
     wlScript.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ManualScript.Label" ) );
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
@@ -448,10 +449,10 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
       // Enable Python syntax highlighting
       ((ScriptStyledTextComp) wstcScriptEditor).addLineStyleListener("python");
     }
-    props.setLook( wstcScriptEditor, Props.WIDGET_STYLE_FIXED );
+    PropsUi.setLook( wstcScriptEditor, Props.WIDGET_STYLE_FIXED );
 
     wlContinueOnUnsetVars = new Label( wcScript, SWT.RIGHT );
-    props.setLook( wlContinueOnUnsetVars );
+    PropsUi.setLook( wlContinueOnUnsetVars );
     wlContinueOnUnsetVars.setText( "Continue on unset variables" );
     wlContinueOnUnsetVars.setToolTipText(
         "Don't raise an error if specified variables are not set in python after " + "script has executed" );
@@ -462,7 +463,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlContinueOnUnsetVars.setLayoutData( fd );
 
     wbContinueOnUnsetVars = new Button( wcScript, SWT.CHECK );
-    props.setLook( wbContinueOnUnsetVars );
+    PropsUi.setLook( wbContinueOnUnsetVars );
     fd = new FormData();
     fd.left = new FormAttachment( wlContinueOnUnsetVars, MARGIN );
     fd.right = new FormAttachment( SECOND_PROMPT_RIGHT_PERCENTAGE, 0 );
@@ -470,7 +471,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wbContinueOnUnsetVars.setLayoutData( fd );
 
     wlPyVarsToGet = new Label( wcScript, SWT.RIGHT );
-    props.setLook( wlPyVarsToGet );
+    PropsUi.setLook( wlPyVarsToGet );
     wlPyVarsToGet.setText( "Python Variables to Get:" );
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
@@ -479,7 +480,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlPyVarsToGet.setLayoutData( fd );
 
     wtvPyVarsToGet = new TextVar( variables, wcScript, SWT.SINGLE | SWT.LEAD | SWT.BORDER );
-    props.setLook( wtvPyVarsToGet );
+    PropsUi.setLook( wtvPyVarsToGet );
     fd = new FormData();
     fd.left = new FormAttachment( wlPyVarsToGet, MARGIN );
     fd.right = new FormAttachment( SECOND_PROMPT_RIGHT_PERCENTAGE, 0 );
@@ -538,7 +539,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wctiFields = new CTabItem( wctfContainer, SWT.NONE );
     wctiFields.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.FieldsTab.TabTitle" ) ); //$NON-NLS-1$
     wcFields = new Composite( wctfContainer, SWT.NONE );
-    props.setLook( wcFields );
+    PropsUi.setLook( wcFields );
     FormLayout fieldsLayout = new FormLayout();
     fieldsLayout.marginWidth = 3;
     fieldsLayout.marginHeight = 3;
@@ -547,7 +548,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlOutputFields = new Label( wcFields, SWT.LEFT );
     wlOutputFields
         .setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.OutFields.Label" ) ); //$NON-NLS-1$
-    props.setLook( wlOutputFields );
+    PropsUi.setLook( wlOutputFields );
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
     fd.right = new FormAttachment( MIDDLE, -MARGIN );
@@ -589,7 +590,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wbGetFields.setEnabled( false );
 
     Label wlIncludeRowIndex = new Label( wcFields, SWT.RIGHT );
-    props.setLook( wlIncludeRowIndex );
+    PropsUi.setLook( wlIncludeRowIndex );
     fd = new FormData();
     fd.bottom = new FormAttachment( 100, -MARGIN * 2 );
     fd.left = new FormAttachment( wbGetFields, MARGIN * 2 );
@@ -636,7 +637,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
   private void addRowHandlingGroup() {
     wgRowHandling = new Group( wcConfig, SWT.SHADOW_NONE );
-    props.setLook( wgRowHandling );
+    PropsUi.setLook( wgRowHandling );
     wgRowHandling.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ConfigTab.RowHandlingGroup" ) );
     FormLayout wglRowHandling = new FormLayout();
     wglRowHandling.marginWidth = 10;
@@ -698,7 +699,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   private void addRowsToProcessControllers() {
     wlRowsToProcess = new Label( wgRowHandling, SWT.RIGHT );
     wlRowsToProcess.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Label" ) );
-    props.setLook( wlRowsToProcess );
+    PropsUi.setLook( wlRowsToProcess );
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
     fd.right = new FormAttachment( FIRST_LABEL_RIGHT_PERCENTAGE, 0 );
@@ -706,7 +707,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlRowsToProcess.setLayoutData( getFirstLabelFormData() );
 
     wcvRowsToProcess = new ComboVar( variables, wgRowHandling, SWT.BORDER | SWT.READ_ONLY );
-    props.setLook( wcvRowsToProcess );
+    PropsUi.setLook( wcvRowsToProcess );
     wcvRowsToProcess.setEditable( false );
     wcvRowsToProcess.addSelectionListener( new SelectionAdapter() {
       @Override public void widgetSelected( SelectionEvent e ) {
@@ -737,11 +738,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlRowsToProcessSize = new Label( wgRowHandling, SWT.RIGHT );
     wlRowsToProcessSize
         .setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Size.Label" ) );
-    props.setLook( wlRowsToProcessSize );
+    PropsUi.setLook( wlRowsToProcessSize );
     wlRowsToProcessSize.setLayoutData( getSecondLabelFormData( wcvRowsToProcess ) );
 
     wtvRowsToProcessSize = new TextVar( variables, wgRowHandling, SWT.SINGLE | SWT.LEAD | SWT.BORDER );
-    props.setLook( wtvRowsToProcessSize );
+    PropsUi.setLook( wtvRowsToProcessSize );
     wtvRowsToProcessSize.addModifyListener( simpleModifyListener );
     wtvRowsToProcessSize.setLayoutData( getSecondPromptFormData( wlRowsToProcessSize ) );
     wtvRowsToProcessSize.setEnabled( false );
@@ -754,11 +755,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     //reservoir sampling
     wlReservoirSampling = new Label( wgRowHandling, SWT.RIGHT );
     wlReservoirSampling.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ReservoirSampling.Label" ) );
-    props.setLook( wlReservoirSampling );
+    PropsUi.setLook( wlReservoirSampling );
     wlReservoirSampling.setLayoutData( getFirstLabelFormData() );
 
     wbReservoirSampling = new Button( wgRowHandling, SWT.CHECK );
-    props.setLook( wbReservoirSampling );
+    PropsUi.setLook( wbReservoirSampling );
     FormData fd = getFirstPromptFormData( wlReservoirSampling );
     fd.right = null;
     wbReservoirSampling.setLayoutData( fd );
@@ -784,13 +785,13 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlReservoirSamplingSize = new Label( wgRowHandling, SWT.RIGHT );
     wlReservoirSamplingSize
         .setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ReservoirSampling.Size.Label" ) );
-    props.setLook( wlReservoirSamplingSize );
+    PropsUi.setLook( wlReservoirSamplingSize );
     wlReservoirSamplingSize.setLayoutData( getSecondLabelFormData( wbReservoirSampling ) );
 
     wtvReservoirSamplingSize = new TextVar( variables, wgRowHandling, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     wtvReservoirSamplingSize
         .setToolTipText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ReservoirSampling.Size.TipText" ) );
-    props.setLook( wtvReservoirSamplingSize );
+    PropsUi.setLook( wtvReservoirSamplingSize );
     wtvReservoirSamplingSize.setLayoutData( getSecondPromptFormData( wlReservoirSamplingSize ) );
     wtvReservoirSamplingSize.setEnabled( false );
     lastControl = wtvReservoirSamplingSize;
@@ -805,11 +806,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     // random seed
     wlRandomSeed = new Label( wgRowHandling, SWT.RIGHT );
     wlRandomSeed.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.Seed.Label" ) );
-    props.setLook( wlRandomSeed );
+    PropsUi.setLook( wlRandomSeed );
     wlRandomSeed.setLayoutData( getFirstLabelFormData() );
 
     wtvRandomSeed = new TextVar( variables, wgRowHandling, SWT.SINGLE | SWT.LEAD | SWT.BORDER );
-    props.setLook( wtvRandomSeed );
+    PropsUi.setLook( wtvRandomSeed );
     wtvRandomSeed.addModifyListener( simpleModifyListener );
     wtvRandomSeed.setLayoutData( getFirstPromptFormData( wlRandomSeed ) );
     lastControl = wtvRandomSeed;
@@ -865,7 +866,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   private void addOptionsGroup() {
     // add second group
     wgOptions = new Group( wcConfig, SWT.SHADOW_NONE );
-    props.setLook( wgOptions );
+    PropsUi.setLook( wgOptions );
     wgOptions.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ConfigTab.OptionsGroup" ) );
     FormLayout optionsGroupLayout = new FormLayout();
     optionsGroupLayout.marginWidth = 10;
@@ -886,11 +887,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlIncludeInputAsOutput = new Label( wgOptions, SWT.RIGHT );
     wlIncludeInputAsOutput.setText( BaseMessages.getString( PKG, "CPythonScriptExecutor.InputFieldAsOutput.Label" ) );
 
-    props.setLook( wlIncludeInputAsOutput );
+    PropsUi.setLook( wlIncludeInputAsOutput );
     wlIncludeInputAsOutput.setLayoutData( getFirstLabelFormData() );
 
     wbIncludeInputAsOutput = new Button( wgOptions, SWT.CHECK );
-    props.setLook( wbIncludeInputAsOutput );
+    PropsUi.setLook( wbIncludeInputAsOutput );
     FormData fd = getFirstPromptFormData( wlIncludeInputAsOutput );
     fd.right = null;
     wbIncludeInputAsOutput.setLayoutData( fd );
@@ -917,11 +918,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlPythonCommand = new Label( wgOptions, SWT.RIGHT );
     wlPythonCommand.setText( BaseMessages.getString( PKG, "CPythonScriptExecutor.PythonCommand.Label" ) );
     wlPythonCommand.setToolTipText( BaseMessages.getString( PKG, "CPythonScriptExecutor.PythonCommand.TipText" ) );
-    props.setLook( wlPythonCommand );
+    PropsUi.setLook( wlPythonCommand );
     wlPythonCommand.setLayoutData( getFirstLabelFormData() );
 
     wtvPythonCommand = new TextVar( variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wtvPythonCommand );
+    PropsUi.setLook( wtvPythonCommand );
     FormData fd = getFirstPromptFormData( wlPythonCommand );
     fd.right = new FormAttachment( 95, 0 );
     wtvPythonCommand.setLayoutData( fd );
@@ -930,11 +931,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlPyPathEntries = new Label( wgOptions, SWT.RIGHT );
     wlPyPathEntries.setText( BaseMessages.getString( PKG, "CPythonScriptExecutor.PyPathEntries.Label" ) );
     wlPyPathEntries.setToolTipText( BaseMessages.getString( PKG, "CPythonScriptExecutor.PyPathEntries.TipText" ) );
-    props.setLook( wlPyPathEntries );
+    PropsUi.setLook( wlPyPathEntries );
     wlPyPathEntries.setLayoutData( getFirstLabelFormData() );
 
     wtvPyPathEntries = new TextVar( variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wtvPyPathEntries );
+    PropsUi.setLook( wtvPyPathEntries );
     fd = getFirstPromptFormData( wlPyPathEntries );
     fd.right = new FormAttachment( 95, 0 );
     wtvPyPathEntries.setLayoutData( fd );
@@ -943,11 +944,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlPyServerID = new Label( wgOptions, SWT.RIGHT );
     wlPyServerID.setText( BaseMessages.getString( PKG, "CPythonScriptExecutor.PyServerID.Label" ) );
     wlPyServerID.setToolTipText( BaseMessages.getString( PKG, "CPythonScriptExecutor.PyServerID.TipText" ) );
-    props.setLook( wlPyServerID );
+    PropsUi.setLook( wlPyServerID );
     wlPyServerID.setLayoutData( getFirstLabelFormData() );
 
     wtvPyServerID = new TextVar( variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wtvPyServerID );
+    PropsUi.setLook( wtvPyServerID );
     fd = getFirstPromptFormData( wlPyServerID );
     fd.right = new FormAttachment( 95, 0 );
     wtvPyServerID.setLayoutData( fd );
@@ -1126,7 +1127,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
       }
     } else {
       wtvScriptLocation.setEditable( false );
-      props.setLook(wstcScriptEditor, Props.WIDGET_STYLE_FIXED);
+      PropsUi.setLook(wstcScriptEditor, Props.WIDGET_STYLE_FIXED);
     }
     wbScriptBrowse.setEnabled( wbLoadScriptFile.getSelection() );
 
