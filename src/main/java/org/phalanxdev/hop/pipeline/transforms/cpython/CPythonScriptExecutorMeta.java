@@ -49,14 +49,11 @@ import org.apache.hop.pipeline.transform.stream.IStream;
 import org.apache.hop.pipeline.transform.stream.IStream.StreamType;
 import org.apache.hop.pipeline.transform.stream.Stream;
 import org.apache.hop.pipeline.transform.stream.StreamIcon;
-import org.phalanxdev.hop.ui.pipeline.transforms.cpython.CPythonScriptExecutorDialog;
 import org.phalanxdev.python.PythonSession;
 import org.w3c.dom.Node;
 
 import java.util.ArrayList;
 import java.util.List;
-import lombok.Getter;
-import lombok.Setter;
 
 /**
  * Meta class for the CPythonScriptExecutor step

@@ -20,7 +20,7 @@
  *
  ******************************************************************************/
 
-package org.phalanxdev.hop.ui.pipeline.transforms.cpython;
+package org.phalanxdev.hop.pipeline.transforms.cpython;
 
 import org.apache.hop.core.Const;
 import org.apache.hop.core.Props;
