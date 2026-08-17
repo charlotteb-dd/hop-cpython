@@ -11,7 +11,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.source>17</maven.compiler.source>
-        <hop.version>2.16.0</hop.version>
+        <hop.version>2.18.0</hop.version>
         <opencsv.version>5.9</opencsv.version>
         <buildId>${maven.build.timestamp}</buildId>
         <maven.build.timestamp.format>yyyyMMdd-HHmm</maven.build.timestamp.format>
@@ -69,12 +69,6 @@
             <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<version>1.18.42</version>
-			<scope>provided</scope>
-		</dependency>
     </dependencies>
 
     <repositories>
@@ -178,9 +172,9 @@
             </plugin>
 
             <plugin>
-                <groupId>org.jboss.jandex</groupId>
+                <groupId>io.smallrye</groupId>
                 <artifactId>jandex-maven-plugin</artifactId>
-                <version>1.0.8</version>
+                <version>3.5.3</version>
                 <executions>
                     <execution>
                         <id>make-index</id>
