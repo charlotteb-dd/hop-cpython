@@ -83,12 +83,19 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
           throw new HopException( BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.NoScriptProvided" ) );
         }
 
-        if ( meta.getFrameNames() != null && meta.getFrameNames().size() > 0 ) {
-          if ( meta.getStepIOMeta().getInfoStreams().size() != meta.getFrameNames().size() ) {
-            throw new HopException(
-                BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.InputStreamToFrameNameMismatch" ) );
-          }
+        List<CPythonInputFrame> inputFrames = meta.getInputFrames();
+        if (inputFrames != null && inputFrames.size() > 0) {
+        	if ( meta.getStepIOMeta().getInfoStreams().size() != inputFrames.size() ) {
+                throw new HopException(
+                    BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.InputStreamToFrameNameMismatch" ) );
+              }
         }
+//        if ( meta.getFrameNames() != null && meta.getFrameNames().size() > 0 ) {
+//          if ( meta.getStepIOMeta().getInfoStreams().size() != meta.getFrameNames().size() ) {
+//            throw new HopException(
+//                BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.InputStreamToFrameNameMismatch" ) );
+//          }
+//        }
 
         if ( data.script == null ) {
           // loading from a file overrides any user-supplied script
@@ -184,16 +191,19 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
           }
         }
 
-        for ( int i = 0; i < infoStreams.size(); i++ ) {
-          IRowSet current = findInputRowSet( infoStreams.get( i ).getSubject().toString() );
-          IRowMeta
-              associatedRowMeta =
-              getPipelineMeta().getTransformFields( variables, infoStreams.get( i ).getSubject().toString() );
+        List<CPythonInputFrame> inputFrames = meta.getInputFrames();
+        for (int i = 0; i < inputFrames.size(); i++) {
+//        for ( int i = 0; i < infoStreams.size(); i++ ) {
+        	String stepName = inputFrames.get(i).getStepName();
+        	String frameName = inputFrames.get(i).getFrameName();
+          IRowSet current = findInputRowSet(stepName);//findInputRowSet( infoStreams.get( i ).getSubject().toString() );
+          IRowMeta associatedRowMeta = getPipelineMeta().getTransformFields( variables, stepName );
+//              getPipelineMeta().getTransformFields( variables, infoStreams.get( i ).getSubject().toString() );
 
           if ( current == null ) {
             throw new HopException( BaseMessages
                 .getString( PKG, "CPythonScriptExecutor.Error.UnableToFindSpecifiedInputStep",
-                    infoStreams.get( i ).getTransformMeta() ) ); //$NON-NLS-1$
+                   stepName ) ); //$NON-NLS-1$
           }
           data.incomingRowSets.add( current );
           infos[i] = associatedRowMeta;
@@ -210,7 +220,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
       data.scriptOnlyOutputRowMeta = new RowMeta();
       data.incomingFieldsIncludedInOutputRowMeta = new RowMeta();
 
-      meta.getFields( data.outputRowMeta, getTransformName(), infos, null, null, null );
+      meta.getFields( data.outputRowMeta, getTransformName(), infos, null, variables, metadataProvider);
       meta.determineInputFieldScriptFieldSplit( data.outputRowMeta, data.scriptOnlyOutputRowMeta,
           data.incomingFieldsIncludedInOutputRowMeta, infos, getTransformName() );
       data.initNonScriptOutputIndexLookup();
@@ -270,7 +280,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
           List<Object[]> frameBuffer = data.frameBuffers.get( i );
           if ( (frameBuffer.size() == data.batchSize && frameBuffer.size() > 0) || ( allDone && frameBuffer.size() > 0 ) ) {
             // push buffer into python and process result
-            String frameName = resolve( meta.getFrameNames().get( i ) );
+            String frameName = resolve( meta.getInputFrames().get( i ).getFrameName() );
 
             logDetailed( BaseMessages.getString( PKG, "CPythonScriptExecutor.Message.PushingBatchIntoPandasDataFrame",
                 //$NON-NLS-1$
@@ -309,7 +319,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
         logDetailed( BaseMessages.getString( PKG, "CPythonScriptExecutor.Message.RetrievingReservoirs" ) );
         for ( int j = 0; j < data.reservoirSamplers.size(); j++ ) {
           ReservoirSamplingData reservoirSamplers = data.reservoirSamplers.get( j );
-          String frameName = resolve( meta.getFrameNames().get( j ) );
+          String frameName = resolve( meta.getInputFrames().get( j ).getFrameName() );
           List<Object[]> sample = reservoirSamplers.getSample();
           CPythonScriptExecutorData.pruneNullRowsFromSample( sample );
 

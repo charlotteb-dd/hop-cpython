@@ -504,14 +504,16 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
           script = loadScriptFromFile( fileName );
         }
 
-        List<String> frameNames = cPythonScriptExecutorMeta.getFrameNames();
+        List<CPythonInputFrame> inputFrames = cPythonScriptExecutorMeta.getInputFrames();
+        int numFrames = (inputFrames != null) ? inputFrames.size() : 0;
+//        List<String> frameNames = cPythonScriptExecutorMeta.getFrameNames();
         if ( org.apache.hop.core.util.Utils.isEmpty( script ) ) {
           throw new HopException(
               BaseMessages.getString( PKG, "CPythonScriptExecutorData.Error.CantDetermineOutputMeta" ) );
         }
         script = vars.resolve( script );
 
-        if ( inputMetas != null && inputMetas.size() != frameNames.size() ) {
+        if ( inputMetas != null && inputMetas.size() != numFrames ) {
           throw new HopException(
               BaseMessages.getString( PKG, "CPythonScriptExecutorData.Error.WrongNumberOfFrameNames" ) );
         }
@@ -528,7 +530,7 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
         if ( inputMetas != null ) {
           for ( int i = 0; i < inputMetas.size(); i++ ) {
             IRowMeta currentMeta = inputMetas.get( i );
-            String currentFrameName = vars.resolve( frameNames.get( i ) );
+            String currentFrameName = vars.resolve( inputFrames.get( i ).getFrameName() );
             List<Object[]> randomRow = generateRandomRows( currentMeta, r );
             randomRows.add( randomRow );
             // Use the new Arrow-enabled method which automatically falls back to CSV if needed
@@ -699,10 +701,10 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
    */
   protected static void releasePySession( Object requester, String pythonCommand, String serverID, IVariables vars )
       throws HopException {
-    if ( pythonCommand != null ) {
+    if ( pythonCommand != null && vars != null) {
       pythonCommand = vars.resolve( pythonCommand );
     }
-    if ( serverID != null ) {
+    if ( serverID != null && vars != null ) {
       serverID = vars.resolve( serverID );
     }
     String

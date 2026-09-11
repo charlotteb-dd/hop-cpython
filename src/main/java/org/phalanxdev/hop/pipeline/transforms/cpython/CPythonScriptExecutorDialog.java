@@ -1,4 +1,4 @@
-/*! ******************************************************************************
+/*! ****************************************************************************
  *
  * CPython for the Hop orchestration platform
  *
@@ -35,6 +35,7 @@ import org.apache.hop.i18n.BaseMessages;
 import org.apache.hop.pipeline.PipelineMeta;
 import org.apache.hop.pipeline.transform.BaseTransformMeta;
 import org.apache.hop.pipeline.transform.ITransformDialog;
+import org.apache.hop.pipeline.transform.TransformMeta;
 import org.apache.hop.pipeline.transform.stream.IStream;
 import org.apache.hop.ui.core.PropsUi;
 import org.apache.hop.ui.core.dialog.ErrorDialog;
@@ -79,7 +80,6 @@ import org.eclipse.swt.widgets.Text;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.phalanxdev.hop.pipeline.transforms.cpython.CPythonScriptExecutorMeta;
 import org.phalanxdev.python.PythonSession;
 
 /**
@@ -87,9 +87,10 @@ import org.phalanxdev.python.PythonSession;
  *
  * @author Mark Hall (mhall{[at]}phalanxdev{[dot]}com)
  */
+
 public class CPythonScriptExecutorDialog extends BaseTransformDialog implements ITransformDialog {
 
-  private static Class<?> PKG = CPythonScriptExecutorMeta.class;
+  private static Class<?> PKG = CPythonScriptExecutorDialog.class;
 
   private CTabFolder wctfContainer;
 
@@ -654,47 +655,92 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     addRandomSeedControllers(); // Random Seed
   }
 
-  private void getFrameFields( CPythonScriptExecutorMeta meta ) {
+  private void getFrameFields(CPythonScriptExecutorMeta meta) {
+	  try {
+	      // 1. Gather all incoming fields based on the saved step names in your new POJO
+	      IRowMeta incomingMetas = new RowMeta();
+	      List<CPythonInputFrame> inputFrames = meta.getInputFrames();
 
-    try {
-      meta.setOutputFields( new RowMeta() );
-      List<String> frameNames = meta.getFrameNames();
-      List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
-      List<IRowMeta> incomingMetas = new ArrayList<IRowMeta>();
-      if ( frameNames.size() > 0 && infoStreams.size() > 0 ) {
+	      if ( inputFrames != null ) {
+	        for ( CPythonInputFrame frame : inputFrames ) {
+	          if ( !org.apache.hop.core.util.Utils.isEmpty( frame.getStepName() ) ) {
+	            TransformMeta prevTransform = pipelineMeta.findTransform( frame.getStepName() );
+	            if ( prevTransform != null ) {
+	              // Add the fields from this previous step to our master list
+	              incomingMetas.addRowMeta( pipelineMeta.getTransformFields( variables, prevTransform ) );
+	            }
+	          }
+	        }
+	      }
 
-        for ( int i = 0; i < infoStreams.size(); i++ ) {
-          incomingMetas.add( pipelineMeta.getTransformFields( variables, infoStreams.get( i ).getTransformMeta() ) );
-        }
-      }
+	      // 2. Warn the user before overwriting the UI table
+	      ShowMessageDialog smd = new ShowMessageDialog( this.getParent(), SWT.YES | SWT.NO | SWT.ICON_WARNING,
+	          BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.GetFields.Dialog.Title" ),
+	          BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.GetFields.Dialog.Message" ), false );
+	      int buttonID = smd.open();
 
-      ShowMessageDialog
-          smd =
-          new ShowMessageDialog( this.getParent(), SWT.YES | SWT.NO | SWT.ICON_WARNING,
-              BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.GetFields.Dialog.Title" ),
-              BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.GetFields.Dialog.Message" ), false );
-      int buttonID = smd.open();
-
-      if ( buttonID == SWT.YES ) {
-        IRowMeta rowMeta = new RowMeta();
-        meta.getFields( rowMeta, "bogus", incomingMetas.toArray( new IRowMeta[incomingMetas.size()] ), null,
-            variables, null );
-
-        wtvOutputFields.clearAll();
-        for ( int i = 0; i < rowMeta.size(); i++ ) {
-          TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
-          item.setText( 1, Const.NVL( rowMeta.getValueMeta( i ).getName(), "" ) );
-          item.setText( 2, Const.NVL( rowMeta.getValueMeta( i ).getTypeDesc(), "" ) );
-        }
-        wtvOutputFields.removeEmptyRows();
-        wtvOutputFields.setRowNums();
-        wtvOutputFields.optWidth( true );
-      }
-    } catch ( HopException ex ) {
-      new ErrorDialog( shell, transformName,
-          BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ErrorGettingFields" ), ex );
-    }
+	      // 3. If they clicked YES, clear the table and populate it with the fields we gathered
+	      if ( buttonID == SWT.YES ) {
+	        wtvOutputFields.clearAll();
+	        
+	        for ( IValueMeta vm : incomingMetas.getValueMetaList() ) {
+	          TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
+	          item.setText( 1, Const.NVL( vm.getName(), "" ) );
+	          item.setText( 2, Const.NVL( vm.getTypeDesc(), "" ) );
+	        }
+	        
+	        wtvOutputFields.removeEmptyRows();
+	        wtvOutputFields.setRowNums();
+	        wtvOutputFields.optWidth( true );
+	      }
+	    } catch ( HopException ex ) {
+	      new ErrorDialog( shell, transformName,
+	          BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ErrorGettingFields" ), ex );
+	    }
   }
+  
+//  private void getFrameFields( CPythonScriptExecutorMeta meta ) {
+//
+//    try {
+//      meta.setOutputFields( new RowMeta() );
+//      
+//      List<String> frameNames = meta.getFrameNames();
+//      List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
+//      List<IRowMeta> incomingMetas = new ArrayList<IRowMeta>();
+//      if ( frameNames.size() > 0 && infoStreams.size() > 0 ) {
+//
+//        for ( int i = 0; i < infoStreams.size(); i++ ) {
+//          incomingMetas.add( pipelineMeta.getTransformFields( variables, infoStreams.get( i ).getTransformMeta() ) );
+//        }
+//      }
+//
+//      ShowMessageDialog
+//          smd =
+//          new ShowMessageDialog( this.getParent(), SWT.YES | SWT.NO | SWT.ICON_WARNING,
+//              BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.GetFields.Dialog.Title" ),
+//              BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.GetFields.Dialog.Message" ), false );
+//      int buttonID = smd.open();
+//
+//      if ( buttonID == SWT.YES ) {
+//        IRowMeta rowMeta = new RowMeta();
+//        meta.getFields( rowMeta, "bogus", incomingMetas.toArray( new IRowMeta[incomingMetas.size()] ), null,
+//            variables, null );
+//
+//        wtvOutputFields.clearAll();
+//        for ( int i = 0; i < rowMeta.size(); i++ ) {
+//          TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
+//          item.setText( 1, Const.NVL( rowMeta.getValueMeta( i ).getName(), "" ) );
+//          item.setText( 2, Const.NVL( rowMeta.getValueMeta( i ).getTypeDesc(), "" ) );
+//        }
+//        wtvOutputFields.removeEmptyRows();
+//        wtvOutputFields.setRowNums();
+//        wtvOutputFields.optWidth( true );
+//      }
+//    } catch ( HopException ex ) {
+//      new ErrorDialog( shell, transformName,
+//          BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ErrorGettingFields" ), ex );
+//    }
+//  }
 
   private void addRowsToProcessControllers() {
     wlRowsToProcess = new Label( wgRowHandling, SWT.RIGHT );
@@ -980,50 +1026,102 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     handleReservoirSamplingChange();
   }
 
-  private void varsToTableFields( CPythonScriptExecutorMeta meta ) {
-    // List<IRowMeta> incomingMetas;
-    IRowMeta incomingMetas = new RowMeta();
-    if ( meta.isIncludeInputAsOutput() ) {
-      List<String> frameNames = meta.getFrameNames();
-      List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
-      if ( frameNames.size() > 0 && infoStreams.size() > 0 ) {
-        // incomingMetas = new ArrayList<IRowMeta>();
+  private void varsToTableFields(CPythonScriptExecutorMeta meta) {
+	  IRowMeta incomingMetas = new RowMeta();
+	    
+	    // 1. Gather incoming fields ONLY if the user wants them included in the output
+	    if ( meta.isIncludeInputAsOutput() ) {
+	      List<CPythonInputFrame> inputFrames = meta.getInputFrames();
+	      if ( inputFrames != null ) {
+	        try {
+	          for ( CPythonInputFrame frame : inputFrames ) {
+	            if ( !org.apache.hop.core.util.Utils.isEmpty( frame.getStepName() ) ) {
+	              TransformMeta prevTransform = pipelineMeta.findTransform( frame.getStepName() );
+	              if ( prevTransform != null ) {
+	                incomingMetas.addRowMeta( pipelineMeta.getTransformFields( variables, prevTransform ) );
+	              }
+	            }
+	          }
+	        } catch ( HopException e ) {
+	          new ErrorDialog( shell, transformName, 
+	              BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ErrorGettingFields" ), e );
+	          return; // Abort if we fail to fetch pipeline fields
+	        }
+	      }
+	    }
 
-        try {
-          for ( int i = 0; i < infoStreams.size(); i++ ) {
-            incomingMetas.addRowMeta( pipelineMeta.getTransformFields( variables, infoStreams.get( i ).getTransformMeta() ) );
-          }
-        } catch ( HopException e ) {
-          new ErrorDialog( shell, transformName,
-              BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ErrorGettingFields" ), e );
-          return;
-        }
-      }
-    }
+	    // 2. Clear the UI table to prepare for new data
+	    wtvOutputFields.clearAll();
+	    
+	    // 3. Add the incoming fields we just gathered to the table
+	    for ( IValueMeta vm : incomingMetas.getValueMetaList() ) {
+	      TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
+	      item.setText( 1, Const.NVL( vm.getName(), "" ) );
+	      item.setText( 2, Const.NVL( vm.getTypeDesc(), "" ) );
+	    }
+	    
+	    // 4. Parse the Python variables text box and add them as String columns
+	    String vars = wtvPyVarsToGet.getText();
+	    if ( !org.apache.hop.core.util.Utils.isEmpty( vars ) ) {
+	      for ( String var : vars.split( "," ) ) {
+	        if ( !org.apache.hop.core.util.Utils.isEmpty( var.trim() ) ) {
+	          TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
+	          item.setText( 1, var.trim() );
+	          item.setText( 2, "String" ); // Default Hop data type for Python variables
+	        }
+	      }
+	    }
 
-    wtvOutputFields.clearAll();
-    if ( incomingMetas.size() > 0 ) {
-      for ( IValueMeta vm : incomingMetas.getValueMetaList() ) {
-        TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
-        item.setText( 1, Const.NVL( vm.getName(), "" ) );
-        item.setText( 2, Const.NVL( vm.getTypeDesc(), "" ) );
-      }
-    }
-    String vars = wtvPyVarsToGet.getText();
-    if ( !org.apache.hop.core.util.Utils.isEmpty( vars ) ) {
-      String[] vA = vars.split( "," );
-      if ( vA.length > 0 ) {
-        for ( String var : vA ) {
-          TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
-          item.setText( 1, Const.NVL( var.trim(), "" ) );
-          item.setText( 2, "String" );
-        }
-        wtvOutputFields.removeEmptyRows();
-        wtvOutputFields.setRowNums();
-        wtvOutputFields.optWidth( true );
-      }
-    }
+	    // 5. Clean up the table visuals
+	    wtvOutputFields.removeEmptyRows();
+	    wtvOutputFields.setRowNums();
+	    wtvOutputFields.optWidth( true );
   }
+  
+//  private void varsToTableFields( CPythonScriptExecutorMeta meta ) {
+//    // List<IRowMeta> incomingMetas;
+//    IRowMeta incomingMetas = new RowMeta();
+//    if ( meta.isIncludeInputAsOutput() ) {	
+//      List<String> frameNames = meta.getFrameNames();
+//      List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
+//      if ( frameNames.size() > 0 && infoStreams.size() > 0 ) {
+//        // incomingMetas = new ArrayList<IRowMeta>();
+//
+//        try {
+//          for ( int i = 0; i < infoStreams.size(); i++ ) {
+//            incomingMetas.addRowMeta( pipelineMeta.getTransformFields( variables, infoStreams.get( i ).getTransformMeta() ) );
+//          }
+//        } catch ( HopException e ) {
+//          new ErrorDialog( shell, transformName,
+//              BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ErrorGettingFields" ), e );
+//          return;
+//        }
+//      }
+//    }
+//
+//    wtvOutputFields.clearAll();
+//    if ( incomingMetas.size() > 0 ) {
+//      for ( IValueMeta vm : incomingMetas.getValueMetaList() ) {
+//        TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
+//        item.setText( 1, Const.NVL( vm.getName(), "" ) );
+//        item.setText( 2, Const.NVL( vm.getTypeDesc(), "" ) );
+//      }
+//    }
+//    String vars = wtvPyVarsToGet.getText();
+//    if ( !org.apache.hop.core.util.Utils.isEmpty( vars ) ) {
+//      String[] vA = vars.split( "," );
+//      if ( vA.length > 0 ) {
+//        for ( String var : vA ) {
+//          TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
+//          item.setText( 1, Const.NVL( var.trim(), "" ) );
+//          item.setText( 2, "String" );
+//        }
+//        wtvOutputFields.removeEmptyRows();
+//        wtvOutputFields.setRowNums();
+//        wtvOutputFields.optWidth( true );
+//      }
+//    }
+//  }
 
   private List<String> stringToList( String list ) {
     List<String> result = new ArrayList<String>();
@@ -1067,8 +1165,9 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
     // incoming stream/frame name data from table
     int numNonEmpty = wtvInputFrames.nrNonEmpty();
-    List<String> frameNames = new ArrayList<String>();
-    List<String> stepNames = new ArrayList<String>();
+//    List<String> frameNames = new ArrayList<String>();
+//    List<String> stepNames = new ArrayList<String>();
+    List<CPythonInputFrame> inputFrames = new ArrayList<>();
     meta.clearStepIOMeta();
     for ( int i = 0; i < numNonEmpty; i++ ) {
       TableItem item = wtvInputFrames.getNonEmpty( i );
@@ -1078,37 +1177,50 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
         if ( org.apache.hop.core.util.Utils.isEmpty( frameName ) ) {
           frameName = CPythonScriptExecutorMeta.DEFAULT_FRAME_NAME_PREFIX + i;
         }
-        frameNames.add( frameName );
-        stepNames.add( stepName );
+        inputFrames.add(new CPythonInputFrame(stepName, frameName));
+//        frameNames.add( frameName );
+//        stepNames.add( stepName );
       }
     }
 
-    meta.setFrameNames( frameNames );
-    List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
-    for ( int i = 0; i < infoStreams.size(); i++ ) {
-      infoStreams.get( i ).setSubject( stepNames.get( i ) );
-    }
+    meta.setInputFrames(inputFrames);
+//    List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
+//    for ( int i = 0; i < infoStreams.size(); i++ ) {
+//      infoStreams.get( i ).setSubject( stepNames.get( i ) );
+//    }
 
     // output field data from table
     numNonEmpty = wtvOutputFields.nrNonEmpty();
-    IRowMeta outRM = numNonEmpty > 0 ? new RowMeta() : null;
+    List<CPythonOutputField> outFields = new ArrayList<>();
+    
     for ( int i = 0; i < numNonEmpty; i++ ) {
       TableItem item = wtvOutputFields.getNonEmpty( i );
       String name = item.getText( 1 ).trim();
       String type = item.getText( 2 ).trim();
       if ( !org.apache.hop.core.util.Utils.isEmpty( name ) && !org.apache.hop.core.util.Utils.isEmpty( type ) ) {
-        //IValueMeta vm = new ValueMeta( name, ValueMeta.getType( type ) );
-        IValueMeta vm;
-        try {
-          vm = ValueMetaFactory.createValueMeta( name, ValueMetaFactory.getIdForValueMeta( type ) );
-          outRM.addValueMeta( vm );
-        } catch ( HopPluginException e ) {
-          e.printStackTrace();
-        }
+        outFields.add(new CPythonOutputField(name, type));
       }
     }
-
-    meta.setOutputFields( outRM );
+    meta.setOutputFields( outFields );
+//    numNonEmpty = wtvOutputFields.nrNonEmpty();
+//    IRowMeta outRM = numNonEmpty > 0 ? new RowMeta() : null;
+//    for ( int i = 0; i < numNonEmpty; i++ ) {
+//      TableItem item = wtvOutputFields.getNonEmpty( i );
+//      String name = item.getText( 1 ).trim();
+//      String type = item.getText( 2 ).trim();
+//      if ( !org.apache.hop.core.util.Utils.isEmpty( name ) && !org.apache.hop.core.util.Utils.isEmpty( type ) ) {
+//        //IValueMeta vm = new ValueMeta( name, ValueMeta.getType( type ) );
+//        IValueMeta vm;
+//        try {
+//          vm = ValueMetaFactory.createValueMeta( name, ValueMetaFactory.getIdForValueMeta( type ) );
+//          outRM.addValueMeta( vm );
+//        } catch ( HopPluginException e ) {
+//          e.printStackTrace();
+//        }
+//      }
+//    }
+//
+//    meta.setOutputFields( outRM );
   }
 
   private void handleReservoirSamplingChange() {
@@ -1140,48 +1252,79 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   }
 
   protected void setInputToFramesTableFields( CPythonScriptExecutorMeta meta ) {
-    List<String> frameNames = meta.getFrameNames();
-    // List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
-    List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
-
-    wtvInputFrames.clearAll();
-    for ( int i = 0; i < infoStreams.size(); i++ ) {
-      if ( infoStreams.get( i ).getSubject() != null ) {
-        String stepName = infoStreams.get( i ).getSubject().toString();
-        String frameName = frameNames.get( i );
-
-        TableItem item = new TableItem( wtvInputFrames.table, SWT.NONE );
-        item.setText( 1, Const.NVL( stepName, "" ) ); //$NON-NLS-1$
-        item.setText( 2, Const.NVL( frameName, "" ) ); //$NON-NLS-1$
-
-        // TransformMeta m = pipelineMeta.findTransform(stepName);
-        // infoStreams.get(i).setTransformMeta(m);
-      }
-    }
-
-    wtvInputFrames.removeEmptyRows();
-    wtvInputFrames.setRowNums();
-    wtvInputFrames.optWidth( true );
+	  List<CPythonInputFrame> inputFrames = meta.getInputFrames();
+	  
+	  wtvInputFrames.clearAll();
+	  
+	  if (inputFrames != null) {
+		  for (CPythonInputFrame frame : inputFrames) {
+			  TableItem item = new TableItem( wtvInputFrames.table, SWT.NONE );
+		      item.setText( 1, Const.NVL( frame.getStepName(), "" ) ); 
+		      item.setText( 2, Const.NVL( frame.getFrameName(), "" ) );
+		  }
+	  }
+	  
+	  wtvInputFrames.removeEmptyRows();
+	  wtvInputFrames.setRowNums();
+	  wtvInputFrames.optWidth( true );
   }
+//    List<String> frameNames = meta.getFrameNames();
+//    // List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
+//    List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
+//
+//    wtvInputFrames.clearAll();
+//    for ( int i = 0; i < infoStreams.size(); i++ ) {
+//      if ( infoStreams.get( i ).getSubject() != null ) {
+//        String stepName = infoStreams.get( i ).getSubject().toString();
+//        String frameName = frameNames.get( i );
+//
+//        TableItem item = new TableItem( wtvInputFrames.table, SWT.NONE );
+//        item.setText( 1, Const.NVL( stepName, "" ) ); //$NON-NLS-1$
+//        item.setText( 2, Const.NVL( frameName, "" ) ); //$NON-NLS-1$
+//
+//        // TransformMeta m = pipelineMeta.findTransform(stepName);
+//        // infoStreams.get(i).setTransformMeta(m);
+//      }
+//    }
+//
+//    wtvInputFrames.removeEmptyRows();
+//    wtvInputFrames.setRowNums();
+//    wtvInputFrames.optWidth( true );
+//  }
 
   protected void setOutputFieldsTableFields( CPythonScriptExecutorMeta meta ) {
-    IRowMeta outFields = meta.getOutputFields();
+	  List<CPythonOutputField> outFields = meta.getOutputFields();
 
-    if ( outFields != null && outFields.size() > 0 ) {
-      for ( int i = 0; i < outFields.size(); i++ ) {
-        IValueMeta vm = outFields.getValueMeta( i );
-        String name = vm.getName();
-        String type = vm.getTypeDesc();
-
-        TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
-        item.setText( 1, Const.NVL( name, "" ) ); //$NON-NLS-1$
-        item.setText( 2, Const.NVL( type, "" ) ); //$NON-NLS-1$
-      }
-
-      wtvOutputFields.removeEmptyRows();
-      wtvOutputFields.setRowNums();
-      wtvOutputFields.optWidth( true );
-    }
+	    wtvOutputFields.clearAll();
+	    
+	    if ( outFields != null && !outFields.isEmpty() ) {
+	      for ( CPythonOutputField field : outFields ) {
+	        TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
+	        item.setText( 1, Const.NVL( field.getName(), "" ) ); 
+	        item.setText( 2, Const.NVL( field.getType(), "" ) ); 
+	      }
+	    }
+	    
+	    wtvOutputFields.removeEmptyRows();
+	    wtvOutputFields.setRowNums();
+	    wtvOutputFields.optWidth( true );
+//    IRowMeta outFields = meta.getOutputFields();
+//
+//    if ( outFields != null && outFields.size() > 0 ) {
+//      for ( int i = 0; i < outFields.size(); i++ ) {
+//        IValueMeta vm = outFields.getValueMeta( i );
+//        String name = vm.getName();
+//        String type = vm.getTypeDesc();
+//
+//        TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
+//        item.setText( 1, Const.NVL( name, "" ) ); //$NON-NLS-1$
+//        item.setText( 2, Const.NVL( type, "" ) ); //$NON-NLS-1$
+//      }
+//
+//      wtvOutputFields.removeEmptyRows();
+//      wtvOutputFields.setRowNums();
+//      wtvOutputFields.optWidth( true );
+//    }
   }
 
   private void cancel() {
