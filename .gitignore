@@ -16,7 +16,9 @@ bin
 routes.yml
 *.tgf
 out/
+sample/
 sample/*.png
 sample/*.sklearn
 hop-cpython-env/
 sample/*.hpl
+__pycache__/

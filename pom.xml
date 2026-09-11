@@ -9,8 +9,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.target>17</maven.compiler.target>
-        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
         <hop.version>2.18.0</hop.version>
         <opencsv.version>5.9</opencsv.version>
         <buildId>${maven.build.timestamp}</buildId>
@@ -97,7 +97,7 @@
 
 
     <build>
-        <resources>
+     <!--   <resources>
             <resource>
                 <targetPath>${project.build.outputDirectory}</targetPath>
                 <directory>${project.build.sourceDirectory}</directory>
@@ -119,6 +119,22 @@
                     <include>**/**.py</include>
                 </includes>
             </resource>
+        </resources>-->
+        
+        <resources>
+	        <resource>
+		        <directory>${project.basedir}/src/main/resources</directory>
+		    </resource>
+        	<resource>
+        		<directory>${project.basedir}/src/main/scripts</directory>
+    		</resource>
+    		<!--<resource>
+                <targetPath>${project.build.outputDirectory}</targetPath>
+                <directory>${project.basedir}/src/main/scripts</directory>
+                <includes>
+                    <include>**/**.py</include>
+                </includes>
+            </resource>-->
         </resources>
 
         <finalName>${project.artifactId}</finalName>
@@ -128,8 +144,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
                 </configuration>
             </plugin>
             <plugin>
