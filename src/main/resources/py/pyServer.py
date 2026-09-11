@@ -304,7 +304,7 @@ def send_rows(message):
     send_response(response, True)
     s = StringIO()
     frame.to_csv(path_or_buf=s, na_rep='?', doublequote=False, index=include_index,
-                 quotechar='\'', line_terminator='#||#', quoting=csv.QUOTE_NONNUMERIC,
+                 quotechar='\'', lineterminator='#||#', quoting=csv.QUOTE_NONNUMERIC,
                  escapechar='\\', header=False, date_format='%Y-%m-%d %H:%M:%S.%f')
     send_response(s.getvalue(), False)
 
