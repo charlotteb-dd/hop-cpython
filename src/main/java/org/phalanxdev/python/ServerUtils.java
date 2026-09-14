@@ -33,6 +33,8 @@ import org.apache.hop.core.row.IValueMeta;
 import org.apache.hop.core.row.RowMeta;
 import org.apache.hop.core.row.value.ValueMetaFactory;
 import org.apache.hop.i18n.BaseMessages;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.imageio.ImageIO;
@@ -272,7 +274,7 @@ public class ServerUtils {
         writeDelimitedToOutputStream( bytes, outputStream );
 
         bytes = readDelimitedFromInputStream( inputStream );
-        Map<String, Object> ack = mapper.readValue( bytes, Map.class );
+        Map<String, Object> ack = mapper.readValue( bytes, new TypeReference<Map<String, Object>>() {} );
         // We will either get a response or we won't (i.e. some kind of comms error will result
         // from a dead/unresponsive server
         if ( !ack.get( RESPONSE_KEY ).toString().equals( OK_KEY ) ) {

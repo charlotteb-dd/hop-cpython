@@ -16,7 +16,7 @@ bin
 routes.yml
 *.tgf
 out/
-sample/
+sample/output/
 sample/*.png
 sample/*.sklearn
 hop-cpython-env/

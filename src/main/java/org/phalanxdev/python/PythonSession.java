@@ -26,6 +26,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.imageio.ImageIO;
+
 import org.apache.commons.io.IOUtils;
 
 import java.awt.image.BufferedImage;
@@ -40,6 +42,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -399,21 +402,28 @@ public class PythonSession {
 
     // System.err.println("**** Executing shell script: \n\n" + script);
 
-    String scriptPath = File.createTempFile( "nixtester_", windows ? ".bat" : ".sh" ).toString();
+    
+    File scriptFile = File.createTempFile( "nixtester_", windows ? ".bat" : ".sh" );
+    String scriptPath = scriptFile.getAbsolutePath();
     // System.err.println("Script path: " + scriptPath);
 
-    FileWriter fwriter = new FileWriter( scriptPath );
+    FileWriter fwriter = new FileWriter( scriptFile );
     fwriter.write( script );
     fwriter.flush();
     fwriter.close();
 
-    if ( !windows ) {
-      Runtime.getRuntime().exec( "chmod u+x " + scriptPath );
-    }
+    scriptFile.setExecutable(true, true);
+//    if ( !windows ) {
+//      Runtime.getRuntime().exec( "chmod u+x " + scriptPath );
+//    }
     ProcessBuilder builder = new ProcessBuilder( scriptPath );
     Process pyProcess = builder.start();
+    
+    //byte[] outputBytes = pyProcess.getInputStream().readAllBytes();
+    //return new String( outputBytes, StandardCharsets.UTF_8 );
+    
     StringWriter writer = new StringWriter();
-    IOUtils.copy( pyProcess.getInputStream(), writer );
+    IOUtils.copy( pyProcess.getInputStream(), writer, StandardCharsets.UTF_8 );
 
     return writer.toString();
   }
@@ -443,23 +453,25 @@ public class PythonSession {
       System.err.println( "Executing server launch script:\n\n" + script );
     }
 
-    String scriptPath = File.createTempFile( "pyserver_", windows ? ".bat" : ".sh" ).toString();
+    File scriptFile = File.createTempFile( "pyserver_", windows ? ".bat" : ".sh" );
+    String scriptPath = scriptFile.getAbsolutePath();
     
     if ( log != null ) {
       log.logBasic( "Writing server launch script to: " + scriptPath );
     }
 
-    FileWriter fwriter = new FileWriter( scriptPath );
+    FileWriter fwriter = new FileWriter( scriptFile );
     fwriter.write( script );
     fwriter.flush();
     fwriter.close();
 
-    if ( !windows ) {
-      if ( log != null ) {
-        log.logDebug( "Making script executable: chmod u+x " + scriptPath );
-      }
-      Runtime.getRuntime().exec( "chmod u+x " + scriptPath );
-    }
+    scriptFile.setExecutable(true, true);
+//    if ( !windows ) {
+//      if ( log != null ) {
+//        log.logDebug( "Making script executable: chmod u+x " + scriptPath );
+//      }
+//      Runtime.getRuntime().exec( "chmod u+x " + scriptPath );
+//    }
 
     ProcessBuilder processBuilder = new ProcessBuilder( scriptPath );
     
@@ -544,7 +556,7 @@ public class PythonSession {
       }
       throw e;
     }
-    pythonCommand = pythonCommand;
+    this.pythonCommand = pythonCommand;
     String key = pythonCommand + ( serverID != null && serverID.length() > 0 ? serverID : "" );
     sessionKey = key;
 
@@ -595,8 +607,8 @@ public class PythonSession {
       Process pyProcess = builder.start();
       StringWriter writer = new StringWriter();
       StringWriter errorWriter = new StringWriter();
-      IOUtils.copy( pyProcess.getInputStream(), writer );
-      IOUtils.copy( pyProcess.getErrorStream(), errorWriter );
+      IOUtils.copy( pyProcess.getInputStream(), writer, StandardCharsets.UTF_8 );
+      IOUtils.copy( pyProcess.getErrorStream(), errorWriter, StandardCharsets.UTF_8 );
       String envCheckResults = writer.toString();
       String errorOutput = errorWriter.toString();
       shutdown = false;
@@ -608,6 +620,8 @@ public class PythonSession {
         log.logError( "Python environment check errors:\n" + errorOutput );
       }
 
+      //ImageIO.write(fig,"png",new File(image1path));
+      
       pythonEnvCheckResults.put( sessionKey, envCheckResults );
       
       // Check if environment check passed by looking for error indicators
