@@ -90,12 +90,6 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
                     BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.InputStreamToFrameNameMismatch" ) );
               }
         }
-//        if ( meta.getFrameNames() != null && meta.getFrameNames().size() > 0 ) {
-//          if ( meta.getStepIOMeta().getInfoStreams().size() != meta.getFrameNames().size() ) {
-//            throw new HopException(
-//                BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.InputStreamToFrameNameMismatch" ) );
-//          }
-//        }
 
         if ( data.script == null ) {
           // loading from a file overrides any user-supplied script
@@ -136,6 +130,8 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
     if ( first ) {
       first = false;
 
+      // TODO: change all getStepIOMeta by getTransformIOMeta
+      meta.getTransformIOMeta().getInfoStreams();
       List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
       IRowMeta[] infos = new IRowMeta[infoStreams.size()];
       data.incomingRowSets = new ArrayList<IRowSet>();
@@ -146,6 +142,8 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
         String rowsToProcess = meta.getRowsToProcess();
         String rowsToProcessSize = resolve( meta.getRowsToProcessSize() );
 
+        // TODO: should not compare to diff language like that because can break if the user change language,
+        // should make an enum [ALL, ROW_BY_ROW, BATCH]
         if ( rowsToProcess.equals( BaseMessages
             .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.BatchEntry.Label" ) ) ) {
           data.batchSize = Integer.parseInt( rowsToProcessSize.isEmpty() ? "0" : rowsToProcessSize );
@@ -214,7 +212,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
         }
 
         data.finishedRowSets = new boolean[data.incomingRowSets.size()];
-        data.infoMetas.addAll( Arrays.asList( infos ) );
+        data.infoMetas.addAll( List.of( infos ) );
       }
       data.outputRowMeta = new RowMeta();
       data.scriptOnlyOutputRowMeta = new RowMeta();
