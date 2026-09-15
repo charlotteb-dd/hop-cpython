@@ -130,8 +130,6 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
     if ( first ) {
       first = false;
 
-      // TODO: change all getStepIOMeta by getTransformIOMeta
-      meta.getTransformIOMeta().getInfoStreams();
       List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
       IRowMeta[] infos = new IRowMeta[infoStreams.size()];
       data.incomingRowSets = new ArrayList<IRowSet>();
@@ -192,16 +190,16 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
         List<CPythonInputFrame> inputFrames = meta.getInputFrames();
         for (int i = 0; i < inputFrames.size(); i++) {
 //        for ( int i = 0; i < infoStreams.size(); i++ ) {
-        	String stepName = inputFrames.get(i).getStepName();
+        	String transformName = inputFrames.get(i).getTransformName();
         	String frameName = inputFrames.get(i).getFrameName();
-          IRowSet current = findInputRowSet(stepName);//findInputRowSet( infoStreams.get( i ).getSubject().toString() );
-          IRowMeta associatedRowMeta = getPipelineMeta().getTransformFields( variables, stepName );
+          IRowSet current = findInputRowSet(transformName);
+          IRowMeta associatedRowMeta = getPipelineMeta().getTransformFields( this, transformName );
 //              getPipelineMeta().getTransformFields( variables, infoStreams.get( i ).getSubject().toString() );
 
           if ( current == null ) {
             throw new HopException( BaseMessages
                 .getString( PKG, "CPythonScriptExecutor.Error.UnableToFindSpecifiedInputStep",
-                   stepName ) ); //$NON-NLS-1$
+                   transformName ) ); //$NON-NLS-1$
           }
           data.incomingRowSets.add( current );
           infos[i] = associatedRowMeta;

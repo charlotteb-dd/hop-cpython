@@ -931,6 +931,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
     // Don't reset
   }
 
+  //@Override
   public ITransformIOMeta getStepIOMeta() {
 
     ITransformIOMeta ioMeta = super.getTransformIOMeta();

@@ -663,8 +663,8 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
 	      if ( inputFrames != null ) {
 	        for ( CPythonInputFrame frame : inputFrames ) {
-	          if ( !org.apache.hop.core.util.Utils.isEmpty( frame.getStepName() ) ) {
-	            TransformMeta prevTransform = pipelineMeta.findTransform( frame.getStepName() );
+	          if ( !org.apache.hop.core.util.Utils.isEmpty( frame.getTransformName() ) ) {
+	            TransformMeta prevTransform = pipelineMeta.findTransform( frame.getTransformName() );
 	            if ( prevTransform != null ) {
 	              // Add the fields from this previous step to our master list
 	              incomingMetas.addRowMeta( pipelineMeta.getTransformFields( variables, prevTransform ) );
@@ -1035,8 +1035,8 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 	      if ( inputFrames != null ) {
 	        try {
 	          for ( CPythonInputFrame frame : inputFrames ) {
-	            if ( !org.apache.hop.core.util.Utils.isEmpty( frame.getStepName() ) ) {
-	              TransformMeta prevTransform = pipelineMeta.findTransform( frame.getStepName() );
+	            if ( !org.apache.hop.core.util.Utils.isEmpty( frame.getTransformName() ) ) {
+	              TransformMeta prevTransform = pipelineMeta.findTransform( frame.getTransformName() );
 	              if ( prevTransform != null ) {
 	                incomingMetas.addRowMeta( pipelineMeta.getTransformFields( variables, prevTransform ) );
 	              }
@@ -1259,7 +1259,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 	  if (inputFrames != null) {
 		  for (CPythonInputFrame frame : inputFrames) {
 			  TableItem item = new TableItem( wtvInputFrames.table, SWT.NONE );
-		      item.setText( 1, Const.NVL( frame.getStepName(), "" ) ); 
+		      item.setText( 1, Const.NVL( frame.getTransformName(), "" ) ); 
 		      item.setText( 2, Const.NVL( frame.getFrameName(), "" ) );
 		  }
 	  }

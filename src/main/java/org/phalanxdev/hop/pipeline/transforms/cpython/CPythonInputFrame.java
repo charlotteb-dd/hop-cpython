@@ -4,8 +4,8 @@ import org.apache.hop.metadata.api.HopMetadataProperty;
 
 public class CPythonInputFrame {
 
-  @HopMetadataProperty(key = "step_name")
-  private String stepName;
+  @HopMetadataProperty(key = "transform_name")
+  private String transformName;
 
   @HopMetadataProperty(key = "frame_name")
   private String frameName;
@@ -14,12 +14,12 @@ public class CPythonInputFrame {
   }
 
   public CPythonInputFrame(String stepName, String frameName) {
-    this.stepName = stepName;
+    this.transformName = stepName;
     this.frameName = frameName;
   }
 
-  public String getStepName() { return stepName; }
-  public void setStepName(String stepName) { this.stepName = stepName; }
+  public String getTransformName() { return transformName; }
+  public void setTransformName(String stepName) { this.transformName = stepName; }
   public String getFrameName() { return frameName; }
   public void setFrameName(String frameName) { this.frameName = frameName; }
 }
