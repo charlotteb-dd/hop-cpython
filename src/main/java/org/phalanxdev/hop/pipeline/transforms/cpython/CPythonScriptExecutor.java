@@ -38,6 +38,7 @@ import org.apache.hop.pipeline.transform.BaseTransform;
 import org.apache.hop.pipeline.transform.ITransform;
 import org.apache.hop.pipeline.transform.TransformMeta;
 import org.apache.hop.pipeline.transform.stream.IStream;
+import org.phalanxdev.hop.pipeline.transforms.cpython.CPythonScriptExecutorMeta.ProcessingMode;
 import org.phalanxdev.hop.pipeline.transforms.reservoirsampling.ReservoirSamplingData;
 import org.phalanxdev.python.PythonSession;
 
@@ -85,7 +86,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 
         List<CPythonInputFrame> inputFrames = meta.getInputFrames();
         if (inputFrames != null && inputFrames.size() > 0) {
-        	if ( meta.getStepIOMeta().getInfoStreams().size() != inputFrames.size() ) {
+        	if ( meta.getTransformIOMeta().getInfoStreams().size() != inputFrames.size() ) {
                 throw new HopException(
                     BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.InputStreamToFrameNameMismatch" ) );
               }
@@ -130,7 +131,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
     if ( first ) {
       first = false;
 
-      List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
+      List<IStream> infoStreams = meta.getTransformIOMeta().getInfoStreams();
       IRowMeta[] infos = new IRowMeta[infoStreams.size()];
       data.incomingRowSets = new ArrayList<IRowSet>();
 
@@ -140,17 +141,28 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
         String rowsToProcess = meta.getRowsToProcess();
         String rowsToProcessSize = resolve( meta.getRowsToProcessSize() );
 
-        // TODO: should not compare to diff language like that because can break if the user change language,
-        // should make an enum [ALL, ROW_BY_ROW, BATCH]
-        if ( rowsToProcess.equals( BaseMessages
-            .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.BatchEntry.Label" ) ) ) {
-          data.batchSize = Integer.parseInt( rowsToProcessSize.isEmpty() ? "0" : rowsToProcessSize );
-        } else if ( rowsToProcess.equals( BaseMessages
-            .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.RowByRowEntry.Label" ) ) ) {
-          data.batchSize = 1;
-        } else {
-          data.batchSize = 0;
+        
+        ProcessingMode mode = ProcessingMode.fromCode( rowsToProcess );
+        switch (mode) {
+            case BATCH:
+        	    data.batchSize = Integer.parseInt( rowsToProcessSize.isEmpty() ? "0" : rowsToProcessSize );
+            case ROW_BY_ROW:
+        	    data.batchSize = 1;
+            case ALL:
+        	default:
+        		data.batchSize = 0;
+        		break;
         }
+        
+//        if ( rowsToProcess.equals( BaseMessages
+//            .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.BatchEntry.Label" ) ) ) {
+//          data.batchSize = Integer.parseInt( rowsToProcessSize.isEmpty() ? "0" : rowsToProcessSize );
+//        } else if ( rowsToProcess.equals( BaseMessages
+//            .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.RowByRowEntry.Label" ) ) ) {
+//          data.batchSize = 1;
+//        } else {
+//          data.batchSize = 0;
+//        }
 
         String reservoirSamplersSize = resolve( meta.getReservoirSamplingSize() );
         boolean doingReservoirSampling = meta.isDoingReservoirSampling();

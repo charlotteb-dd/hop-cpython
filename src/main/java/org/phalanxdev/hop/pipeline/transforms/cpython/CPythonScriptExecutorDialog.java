@@ -80,6 +80,7 @@ import org.eclipse.swt.widgets.Text;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.phalanxdev.hop.pipeline.transforms.cpython.CPythonScriptExecutorMeta.ProcessingMode;
 import org.phalanxdev.python.PythonSession;
 
 /**
@@ -1002,8 +1003,22 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   }
 
   protected void getData( CPythonScriptExecutorMeta meta ) {
-    wcvRowsToProcess.setText( meta.getRowsToProcess() );
-    setItemText( wtvRowsToProcessSize, meta.getRowsToProcessSize() );
+    //wcvRowsToProcess.setText( meta.getRowsToProcess() );
+	  ProcessingMode mode = ProcessingMode.fromCode( meta.getRowsToProcess() );
+
+	  switch (mode) {
+	      case BATCH:
+	          wcvRowsToProcess.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.BatchEntry.Label" ) );
+	          break;
+	      case ROW_BY_ROW:
+	          wcvRowsToProcess.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.RowByRowEntry.Label" ) );
+	          break;
+	      case ALL:
+	      default:
+	          wcvRowsToProcess.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.AllEntry.Label" ) );
+	          break;
+	  }
+	  setItemText( wtvRowsToProcessSize, meta.getRowsToProcessSize() );
     wbReservoirSampling.setSelection( meta.isDoingReservoirSampling() );
     setItemText( wtvReservoirSamplingSize, meta.getReservoirSamplingSize() );
     setItemText( wtvRandomSeed, Const.NVL( meta.getSeed(), "" ) );
@@ -1147,7 +1162,15 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   }
 
   private void setData( CPythonScriptExecutorMeta meta ) {
-    meta.setRowsToProcess( wcvRowsToProcess.getText() );
+	String selectedText = wcvRowsToProcess.getText();
+	if ( selectedText.equals( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.BatchEntry.Label" ) ) ) {
+		  meta.setRowsToProcess( ProcessingMode.BATCH.getCode() );
+	} else if ( selectedText.equals( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.RowByRowEntry.Label" ) ) ) {
+		meta.setRowsToProcess( ProcessingMode.ROW_BY_ROW.getCode() );
+    } else {
+	    meta.setRowsToProcess( ProcessingMode.ALL.getCode() );
+	}
+    //meta.setRowsToProcess( wcvRowsToProcess.getText() );
     meta.setRowsToProcessSize( wtvRowsToProcessSize.getText() );
     meta.setDoingReservoirSampling( wbReservoirSampling.getSelection() );
     meta.setReservoirSamplingSize( wtvReservoirSamplingSize.getText() );

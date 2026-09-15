@@ -931,8 +931,8 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
     // Don't reset
   }
 
-  //@Override
-  public ITransformIOMeta getStepIOMeta() {
+  @Override
+  public ITransformIOMeta getTransformIOMeta() {
 
     ITransformIOMeta ioMeta = super.getTransformIOMeta();
     if (ioMeta.getInfoStreams().isEmpty()) {
@@ -966,5 +966,33 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
   @Override
   public String getDialogClassName() {
     return CPythonScriptExecutorDialog.class.getCanonicalName();
+  }
+  
+  public enum ProcessingMode {
+    ROW_BY_ROW("RowByRow"),
+    BATCH("Batch"),
+    ALL("All");
+
+    private final String code;
+
+    ProcessingMode(String code) {
+      this.code = code;
+    }
+      
+    public String getCode() {
+        return code;
+    }
+      
+    public static ProcessingMode fromCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            return ALL; // Default fallback
+        }
+        for (ProcessingMode mode : values()) {
+            if (mode.getCode().equalsIgnoreCase(code) || mode.name().equalsIgnoreCase(code)) {
+                return mode;
+            }
+        }
+        return ALL; 
+    }
   }
 }
