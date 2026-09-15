@@ -146,23 +146,15 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
         switch (mode) {
             case BATCH:
         	    data.batchSize = Integer.parseInt( rowsToProcessSize.isEmpty() ? "0" : rowsToProcessSize );
+        	    break;
             case ROW_BY_ROW:
         	    data.batchSize = 1;
+        	    break;
             case ALL:
         	default:
         		data.batchSize = 0;
         		break;
         }
-        
-//        if ( rowsToProcess.equals( BaseMessages
-//            .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.BatchEntry.Label" ) ) ) {
-//          data.batchSize = Integer.parseInt( rowsToProcessSize.isEmpty() ? "0" : rowsToProcessSize );
-//        } else if ( rowsToProcess.equals( BaseMessages
-//            .getString( PKG, "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.RowByRowEntry.Label" ) ) ) {
-//          data.batchSize = 1;
-//        } else {
-//          data.batchSize = 0;
-//        }
 
         String reservoirSamplersSize = resolve( meta.getReservoirSamplingSize() );
         boolean doingReservoirSampling = meta.isDoingReservoirSampling();
@@ -201,12 +193,10 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 
         List<CPythonInputFrame> inputFrames = meta.getInputFrames();
         for (int i = 0; i < inputFrames.size(); i++) {
-//        for ( int i = 0; i < infoStreams.size(); i++ ) {
         	String transformName = inputFrames.get(i).getTransformName();
         	String frameName = inputFrames.get(i).getFrameName();
           IRowSet current = findInputRowSet(transformName);
           IRowMeta associatedRowMeta = getPipelineMeta().getTransformFields( this, transformName );
-//              getPipelineMeta().getTransformFields( variables, infoStreams.get( i ).getSubject().toString() );
 
           if ( current == null ) {
             throw new HopException( BaseMessages
@@ -222,7 +212,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
         }
 
         data.finishedRowSets = new boolean[data.incomingRowSets.size()];
-        data.infoMetas.addAll( List.of( infos ) );
+        data.infoMetas.addAll( Arrays.asList(infos) );
       }
       data.outputRowMeta = new RowMeta();
       data.scriptOnlyOutputRowMeta = new RowMeta();

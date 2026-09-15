@@ -22,6 +22,8 @@
 
 package org.phalanxdev.hop.pipeline.transforms.cpython;
 
+import org.apache.hop.core.CheckResult;
+import org.apache.hop.core.ICheckResult;
 import org.apache.hop.core.annotations.Transform;
 import org.apache.hop.core.exception.HopException;
 import org.apache.hop.core.exception.HopPluginException;
@@ -34,6 +36,7 @@ import org.apache.hop.core.variables.IVariables;
 import org.apache.hop.i18n.BaseMessages;
 import org.apache.hop.metadata.api.HopMetadataProperty;
 import org.apache.hop.metadata.api.IHopMetadataProvider;
+import org.apache.hop.pipeline.PipelineMeta;
 import org.apache.hop.pipeline.transform.BaseTransformMeta;
 import org.apache.hop.pipeline.transform.ITransformIOMeta;
 import org.apache.hop.pipeline.transform.TransformIOMeta;
@@ -86,7 +89,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
   /**
    * Default prefix for kettle data -> pandas frame name
    */
-  public static final String DEFAULT_FRAME_NAME_PREFIX = "kettle_data";
+  public static final String DEFAULT_FRAME_NAME_PREFIX = "hop_data";
 
   /**
    * Default row handling strategy
@@ -819,5 +822,44 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
         }
         return ALL; 
     }
+  }
+  
+  @Override
+  public void check(List<ICheckResult> remarks, PipelineMeta pipelineMeta, TransformMeta transformMeta, IRowMeta prev, String[] input, String[] output, IRowMeta info, IVariables variables, IHopMetadataProvider metadataProvider) {
+	  CheckResult cr;
+
+	    if ( org.apache.hop.core.util.Utils.isEmpty( getScript() ) && 
+	         org.apache.hop.core.util.Utils.isEmpty( getLoadScriptFile() ) ) {
+	        cr = new CheckResult( ICheckResult.TYPE_RESULT_ERROR, 
+	            BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.NoScriptProvided" ), transformMeta );
+	    } else {
+	        cr = new CheckResult( ICheckResult.TYPE_RESULT_OK, 
+	            "A Python script or script file is provided.", transformMeta );
+	    }
+	    remarks.add( cr );
+
+	    List<IStream> infoStreams = getTransformIOMeta().getInfoStreams();
+	    List<CPythonInputFrame> inputFrames = getInputFrames();
+	    
+	    if ( inputFrames != null && !inputFrames.isEmpty() ) {
+	        if ( infoStreams.size() != inputFrames.size() ) {
+	            cr = new CheckResult( ICheckResult.TYPE_RESULT_ERROR, 
+	                BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.InputStreamToFrameNameMismatch" ), transformMeta );
+	            remarks.add( cr );
+	        } else {
+	            cr = new CheckResult( ICheckResult.TYPE_RESULT_OK, 
+	                "Input frames map correctly to input streams.", transformMeta );
+	            remarks.add( cr );
+	        }
+	    }
+
+	    if ( input.length > 0 ) {
+	        cr = new CheckResult( ICheckResult.TYPE_RESULT_OK, 
+	            "Transform is receiving info/data from previous transforms.", transformMeta );
+	    } else {
+	        cr = new CheckResult( ICheckResult.TYPE_RESULT_WARNING, 
+	            "No input received from other transforms. Ensure this is intentional.", transformMeta );
+	    }
+	    remarks.add( cr );
   }
 }

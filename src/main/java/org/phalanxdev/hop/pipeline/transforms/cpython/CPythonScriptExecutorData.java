@@ -185,7 +185,7 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
     try {
       if ( !scriptF.exists() ) {
         throw new HopException(
-            BaseMessages.getString( PKG, "RScriptExecutorData.Error.ScriptFileDoesNotExist", file ) );
+            BaseMessages.getString( PKG, "CPythonScriptExecutorData.Error.ScriptFileDoesNotExist", file ) );
       }
 
       InputStream is = HopVfs.getInputStream( scriptF );
@@ -316,15 +316,13 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
           varsOrColsNotDefinedInOutputMeta.add( v );
         }
       }
-
-      if ( varsOrColsNotDefinedInOutputMeta.size() > 0 && log != null ) {
-        StringBuilder b = new StringBuilder();
-        for ( String v : varsOrColsNotDefinedInOutputMeta ) {
-          b.append( v ).append( " " );
-        }
-        log.logDetailed( BaseMessages
-            .getString( PKG, "CPythonScriptExecutor.Message.VarsOrColsNotDefinedInOutputMeta", b.toString() ) );
-      }
+      
+      if ( !varsOrColsNotDefinedInOutputMeta.isEmpty() && log != null ) {
+    	    String b = String.join( " ", varsOrColsNotDefinedInOutputMeta );
+    	    log.logDetailed( BaseMessages
+    	            .getString( PKG, "CPythonScriptExecutor.Message.VarsOrColsNotDefinedInOutputMeta", b ) );
+    	}
+      
       first = false;
     }
 
@@ -365,13 +363,19 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
       }
     }
 
-    if ( unsetVars.size() > 0 ) {
-      StringBuilder b = new StringBuilder();
-      for ( String v : unsetVars ) {
-        b.append( v ).append( " " );
-      }
-      throw new HopException(
-          BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.PythonVariableNotSet", b.toString() ) );
+//    if ( unsetVars.size() > 0 ) {
+//      StringBuilder b = new StringBuilder();
+//      for ( String v : unsetVars ) {
+//        b.append( v ).append( " " );
+//      }
+//      throw new HopException(
+//          BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.PythonVariableNotSet", b.toString() ) );
+//    }
+    
+    if ( !unsetVars.isEmpty() ) {
+        String missing = String.join( " ", unsetVars );
+        throw new HopException(
+            BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.PythonVariableNotSet", missing ) );
     }
 
     if ( tmpSet.size() != outputRowMeta.size() ) {
