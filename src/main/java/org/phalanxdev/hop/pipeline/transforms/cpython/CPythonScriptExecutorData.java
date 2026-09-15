@@ -362,15 +362,6 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
         }
       }
     }
-
-//    if ( unsetVars.size() > 0 ) {
-//      StringBuilder b = new StringBuilder();
-//      for ( String v : unsetVars ) {
-//        b.append( v ).append( " " );
-//      }
-//      throw new HopException(
-//          BaseMessages.getString( PKG, "CPythonScriptExecutor.Error.PythonVariableNotSet", b.toString() ) );
-//    }
     
     if ( !unsetVars.isEmpty() ) {
         String missing = String.join( " ", unsetVars );
