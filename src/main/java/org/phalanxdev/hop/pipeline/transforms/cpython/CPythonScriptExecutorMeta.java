@@ -22,27 +22,20 @@
 
 package org.phalanxdev.hop.pipeline.transforms.cpython;
 
-import org.apache.hop.core.Const;
 import org.apache.hop.core.annotations.Transform;
 import org.apache.hop.core.exception.HopException;
 import org.apache.hop.core.exception.HopPluginException;
 import org.apache.hop.core.exception.HopTransformException;
-import org.apache.hop.core.exception.HopXmlException;
 import org.apache.hop.core.row.IRowMeta;
 import org.apache.hop.core.row.IValueMeta;
 import org.apache.hop.core.row.RowMeta;
 import org.apache.hop.core.row.value.ValueMetaFactory;
 import org.apache.hop.core.variables.IVariables;
-import org.apache.hop.core.xml.XmlHandler;
 import org.apache.hop.i18n.BaseMessages;
 import org.apache.hop.metadata.api.HopMetadataProperty;
 import org.apache.hop.metadata.api.IHopMetadataProvider;
-import org.apache.hop.pipeline.Pipeline;
-import org.apache.hop.pipeline.PipelineMeta;
 import org.apache.hop.pipeline.transform.BaseTransformMeta;
-import org.apache.hop.pipeline.transform.ITransform;
 import org.apache.hop.pipeline.transform.ITransformIOMeta;
-import org.apache.hop.pipeline.transform.ITransformMeta;
 import org.apache.hop.pipeline.transform.TransformIOMeta;
 import org.apache.hop.pipeline.transform.TransformMeta;
 import org.apache.hop.pipeline.transform.stream.IStream;
@@ -50,7 +43,6 @@ import org.apache.hop.pipeline.transform.stream.IStream.StreamType;
 import org.apache.hop.pipeline.transform.stream.Stream;
 import org.apache.hop.pipeline.transform.stream.StreamIcon;
 import org.phalanxdev.python.PythonSession;
-import org.w3c.dom.Node;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,9 +92,9 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
    * Default row handling strategy
    */
   public static final String
-      DEFAULT_ROWS_TO_PROCESS =
-      BaseMessages.getString(PKG,
-          "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.AllEntry.Label");
+      DEFAULT_ROWS_TO_PROCESS = ProcessingMode.ALL.getCode();
+//      BaseMessages.getString(PKG,
+//          "CPythonScriptExecutorDialog.NumberOfRowsToProcess.Dropdown.AllEntry.Label");
 
   /**
    * The script to execute
@@ -747,172 +739,6 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
       }
     }
   }
-//
-//  @Override
-//  public String getXml() {
-//    StringBuilder buff = new StringBuilder();
-//
-//    buff.append(XmlHandler.addTagValue(PYTHON_COMMAND, getPythonCommand()));
-//    buff.append(XmlHandler.addTagValue(PYTHON_PATH_ENTRIES, getPyPathEntries()));
-//    buff.append(XmlHandler.addTagValue(PYTHON_SERVER_ID, getServerID()));
-//    buff.append(XmlHandler.addTagValue(ROWS_TO_PROCESS_TAG, getRowsToProcess()));
-//    buff.append(XmlHandler.addTagValue(ROWS_TO_PROCESS_SIZE_TAG, getRowsToProcessSize()));
-//    buff.append(XmlHandler.addTagValue(RESERVOIR_SAMPLING_TAG, isDoingReservoirSampling()));
-//    buff.append(XmlHandler.addTagValue(RESERVOIR_SAMPLING_SIZE_TAG, getReservoirSamplingSize()));
-//    buff.append(XmlHandler.addTagValue(RESERVOIR_SAMPLING_SEED_TAG, getSeed()));
-//    buff.append(XmlHandler.addTagValue(INCLUDE_INPUT_AS_OUTPUT_TAG, isIncludeInputAsOutput()));
-//    buff.append(XmlHandler.addTagValue(SCRIPT_TAG, getScript()));
-//    buff.append(XmlHandler.addTagValue(LOAD_SCRIPT_AT_RUNTIME_TAG, isLoadScriptAtRuntime()));
-//    buff.append(XmlHandler.addTagValue(SCRIPT_TO_LOAD_TAG, getLoadScriptFile()));
-//    buff.append(XmlHandler.addTagValue(CONTINUE_ON_UNSET_VARS_TAG, isContinueOnUnsetVars()));
-//    buff.append(XmlHandler.addTagValue(PY_VARS_TO_GET_TAG, varListToString()));
-//    buff.append(
-//        XmlHandler.addTagValue(INCLUDE_FRAME_ROW_INDEX_AS_OUTPUT_FIELD_TAG,
-//            isIncludeRowIndex()));
-//
-//    // names of the frames to push into python
-//    buff.append("   " + XmlHandler.openTag(FRAME_NAMES_TAG)
-//        + Const.CR); //$NON-NLS-1$
-//    for (int i = 0; i < frameNames.size(); i++) {
-//      buff.append(
-//          "    " + XmlHandler
-//              .addTagValue(SINGLE_FRAME_NAME_PREFIX_TAG + i, frameNames.get(i))); //$NON-NLS-1$
-//    }
-//    buff.append("    " + XmlHandler.closeTag(FRAME_NAMES_TAG)
-//        + Const.CR); //$NON-NLS-1$
-//
-//    // name of the corresponding step that is providing data for each frame
-//    buff.append("   " + XmlHandler.openTag(INCOMING_STEP_NAMES_TAG)
-//        + Const.CR); //$NON-NLS-1$
-//    List<IStream> infoStreams = getStepIOMeta().getInfoStreams();
-//    for (int i = 0; i < infoStreams.size(); i++) {
-//      if (infoStreams.get(i).getSubject() != null) {
-//        buff.append("    " //$NON-NLS-1$
-//            + XmlHandler
-//            .addTagValue(SINGLE_INCOMING_STEP_NAME_TAG + i,
-//                infoStreams.get(i).getSubject().toString()));
-//      }
-//    }
-//    buff.append("   " + XmlHandler.closeTag(INCOMING_STEP_NAMES_TAG)
-//        + Const.CR); //$NON-NLS-1$
-//
-//    if (outputFields != null && outputFields.size() > 0) {
-//      buff.append("   " + XmlHandler.openTag(OUTPUT_FIELDS_TAG)
-//          + Const.CR); //$NON-NLS-1$
-//      for (int i = 0; i < outputFields.size(); i++) {
-//        IValueMeta vm = outputFields.getValueMeta(i);
-//        buff.append("        " + XmlHandler.openTag(SINGLE_OUTPUT_FIELD_TAG)
-//            + Const.CR); //$NON-NLS-1$
-//        buff.append("            " + XmlHandler.addTagValue("field_name", vm.getName())
-//            + Const.CR); //$NON-NLS-1$ //$NON-NLS-2$
-//        buff.append("            " + XmlHandler
-//            .addTagValue("type", vm.getTypeDesc())); //$NON-NLS-1$ //$NON-NLS-2$
-//        buff.append("        " + XmlHandler.closeTag(SINGLE_OUTPUT_FIELD_TAG)
-//            + Const.CR); //$NON-NLS-1$
-//      }
-//      buff.append("    " + XmlHandler.closeTag(OUTPUT_FIELDS_TAG)
-//          + Const.CR); //$NON-NLS-1$
-//    }
-//
-//    return buff.toString();
-//  }
-//
-//  @Override
-//  public void loadXml(Node transformNode, IHopMetadataProvider metadataProvider)
-//      throws HopXmlException {
-//    String pythonC = XmlHandler.getTagValue(transformNode, PYTHON_COMMAND);
-//    setPythonCommand(pythonC == null ? "" : pythonC);
-//    String pyPathE = XmlHandler.getTagValue(transformNode, PYTHON_PATH_ENTRIES);
-//    setPyPathEntries(pyPathE == null ? "" : pyPathE);
-//    String pyServerID = XmlHandler.getTagValue(transformNode, PYTHON_SERVER_ID);
-//    setServerID(pyServerID == null ? "" : pyServerID);
-//
-//    String rowsToProcess = XmlHandler.getTagValue(transformNode, ROWS_TO_PROCESS_TAG);
-//    setRowsToProcess(rowsToProcess == null ? "" : rowsToProcess);
-//    String rowsToProcessSize = XmlHandler.getTagValue(transformNode, ROWS_TO_PROCESS_SIZE_TAG);
-//    setRowsToProcessSize(rowsToProcessSize == null ? "" : rowsToProcessSize);
-//    setDoingReservoirSampling(
-//        XmlHandler.getTagValue(transformNode, RESERVOIR_SAMPLING_TAG)
-//            .equalsIgnoreCase("Y")); //$NON-NLS-1$
-//    String reservoirSamplingSize = XmlHandler
-//        .getTagValue(transformNode, RESERVOIR_SAMPLING_SIZE_TAG);
-//    setReservoirSamplingSize(reservoirSamplingSize == null ? "" : reservoirSamplingSize);
-//    setSeed(XmlHandler.getTagValue(transformNode, RESERVOIR_SAMPLING_SEED_TAG));
-//    String includeInputAsOutput = XmlHandler
-//        .getTagValue(transformNode, INCLUDE_INPUT_AS_OUTPUT_TAG);
-//    if (!org.apache.hop.core.util.Utils.isEmpty(includeInputAsOutput)) {
-//      setIncludeInputAsOutput(includeInputAsOutput.equalsIgnoreCase("Y")); //$NON-NLS-1$
-//    }
-//    String includeFrameRowIndex = XmlHandler
-//        .getTagValue(transformNode, INCLUDE_FRAME_ROW_INDEX_AS_OUTPUT_FIELD_TAG);
-//    if (!org.apache.hop.core.util.Utils.isEmpty(includeFrameRowIndex)) {
-//      setIncludeRowIndex(includeFrameRowIndex.equalsIgnoreCase("Y"));
-//    }
-//
-//    setScript(XmlHandler.getTagValue(transformNode, SCRIPT_TAG));
-//
-//    String loadScript = XmlHandler.getTagValue(transformNode, LOAD_SCRIPT_AT_RUNTIME_TAG);
-//    if (!org.apache.hop.core.util.Utils.isEmpty(loadScript)) {
-//      setLoadScriptAtRuntime(loadScript.equalsIgnoreCase("Y")); //$NON-NLS-1$
-//    }
-//    setLoadScriptFile(XmlHandler.getTagValue(transformNode, SCRIPT_TO_LOAD_TAG));
-//
-//    String continueOnUnset = XmlHandler.getTagValue(transformNode, CONTINUE_ON_UNSET_VARS_TAG);
-//    if (!org.apache.hop.core.util.Utils.isEmpty(continueOnUnset)) {
-//      setContinueOnUnsetVars(continueOnUnset.equalsIgnoreCase("Y"));
-//    }
-//
-//    String pyVars = XmlHandler.getTagValue(transformNode, PY_VARS_TO_GET_TAG);
-//    if (!org.apache.hop.core.util.Utils.isEmpty(pyVars)) {
-//      stringToVarList(pyVars);
-//    }
-//
-//    // get the frame names
-//    Node frameNameFields = XmlHandler.getSubNode(transformNode, FRAME_NAMES_TAG);
-//    if (frameNameFields != null) {
-//      Node frameNode = null;
-//      int i = 0;
-//      while ((frameNode = XmlHandler.getSubNode(frameNameFields, SINGLE_FRAME_NAME_PREFIX_TAG + i))
-//          != null) {
-//        frameNames.add(XmlHandler.getNodeValue(frameNode));
-//        i++;
-//      }
-//    }
-//
-//    // get the step names
-//    Node stepNameFields = XmlHandler.getSubNode(transformNode, INCOMING_STEP_NAMES_TAG);
-//    if (stepNameFields != null) {
-//      List<IStream> infoStreams = getStepIOMeta().getInfoStreams();
-//
-//      for (int i = 0; i < infoStreams.size(); i++) {
-//        Node stepNameNode = XmlHandler
-//            .getSubNode(stepNameFields, SINGLE_INCOMING_STEP_NAME_TAG + i);
-//        infoStreams.get(i).setSubject(XmlHandler.getNodeValue(stepNameNode));
-//      }
-//    }
-//
-//    // get the outgoing fields
-//    Node outgoingFields = XmlHandler.getSubNode(transformNode, OUTPUT_FIELDS_TAG);
-//    if (outgoingFields != null
-//        && XmlHandler.countNodes(outgoingFields, SINGLE_OUTPUT_FIELD_TAG) > 0) {
-//      int nrfields = XmlHandler.countNodes(outgoingFields, SINGLE_OUTPUT_FIELD_TAG);
-//
-//      outputFields = new RowMeta();
-//      for (int i = 0; i < nrfields; i++) {
-//        Node fieldNode = XmlHandler.getSubNodeByNr(outgoingFields, SINGLE_OUTPUT_FIELD_TAG, i);
-//        String name = XmlHandler.getTagValue(fieldNode, "field_name"); //$NON-NLS-1$
-//        String type = XmlHandler.getTagValue(fieldNode, "type"); //$NON-NLS-1$
-//        //IValueMeta vm = new ValueMeta( name, ValueMeta.getType( type ) );
-//        try {
-//          IValueMeta vm = ValueMetaFactory
-//              .createValueMeta(name, ValueMetaFactory.getIdForValueMeta(type));
-//          outputFields.addValueMeta(vm);
-//        } catch (HopPluginException ex) {
-//          throw new HopXmlException(ex);
-//        }
-//      }
-//    }
-//  }
 
   @Override
   public Object clone() {
@@ -944,8 +770,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
       ioMeta.setOutputDynamic(false);
 
       int expectedStreams = (getInputFrames() != null) ? getInputFrames().size() : 0;
-      int numExpectedStreams = expectedStreams;
-      for (int i = 0; i < numExpectedStreams; i++) {
+      for (int i = 0; i < expectedStreams; i++) {
         ioMeta.addStream(
             new Stream(StreamType.INFO, null, "Input to pandas frame " + (i + 1),
                 StreamIcon.INFO, null));

@@ -25,7 +25,6 @@ package org.phalanxdev.hop.pipeline.transforms.cpython;
 import org.apache.hop.core.Const;
 import org.apache.hop.core.Props;
 import org.apache.hop.core.exception.HopException;
-import org.apache.hop.core.exception.HopPluginException;
 import org.apache.hop.core.row.IRowMeta;
 import org.apache.hop.core.row.IValueMeta;
 import org.apache.hop.core.row.RowMeta;
@@ -36,8 +35,8 @@ import org.apache.hop.pipeline.PipelineMeta;
 import org.apache.hop.pipeline.transform.BaseTransformMeta;
 import org.apache.hop.pipeline.transform.ITransformDialog;
 import org.apache.hop.pipeline.transform.TransformMeta;
-import org.apache.hop.pipeline.transform.stream.IStream;
 import org.apache.hop.ui.core.PropsUi;
+import org.apache.hop.ui.core.dialog.BaseDialog;
 import org.apache.hop.ui.core.dialog.ErrorDialog;
 import org.apache.hop.ui.core.dialog.ShowMessageDialog;
 import org.apache.hop.ui.core.gui.GuiResource;
@@ -142,8 +141,8 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   private static final int FIRST_PROMPT_RIGHT_PERCENTAGE = 55;
   private static final int SECOND_LABEL_RIGHT_PERCENTAGE = 65;
   private static final int SECOND_PROMPT_RIGHT_PERCENTAGE = 80;
-  private static final int MARGIN = PropsUi.getMargin(); // Const.MARGIN;
-  private static int MIDDLE;
+  //private static final int MARGIN = PropsUi.getMargin(); // Const.MARGIN;
+  //private static int MIDDLE;
 
   protected CPythonScriptExecutorMeta inputMeta;
   protected CPythonScriptExecutorMeta originalMeta;
@@ -187,41 +186,20 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     Shell parent = getParent();
     Display display = parent.getDisplay();
 
-    shell = new Shell( parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MAX | SWT.MIN );
-    PropsUi.setLook(shell); //props.setLook( shell );
-    setShellImage( shell, inputMeta );
+    Control wSpacer = createShell(BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.Shell.Title" ));
 
     changed = inputMeta.hasChanged();
 
-    FormLayout formLayout = new FormLayout();
-    formLayout.marginWidth = PropsUi.getMargin(); //Const.FORM_MARGIN;
-    formLayout.marginHeight = PropsUi.getMargin(); //Const.FORM_MARGIN;
-
-    shell.setLayout( formLayout );
-    shell.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.Shell.Title" ) ); //$NON-NLS-1$
-
-    MIDDLE = props.getMiddlePct();
-
-    // Stepname line
-    wlTransformName = new Label( shell, SWT.RIGHT );
-    wlTransformName
-        .setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.Stepname.Label" ) ); //$NON-NLS-1$
-    PropsUi.setLook( wlTransformName );
-    fdlTransformName = new FormData();
     fdlTransformName.left = new FormAttachment( 0, 0 );
-    fdlTransformName.right = new FormAttachment( MIDDLE, -MARGIN );
-    fdlTransformName.top = new FormAttachment( 0, MARGIN );
+    fdlTransformName.right = new FormAttachment( middle, -margin );
+    fdlTransformName.top = new FormAttachment( 0, margin );
     wlTransformName.setLayoutData( fdlTransformName );
-    wTransformName = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    wTransformName.setText( transformName );
-    PropsUi.setLook( wTransformName );
-    wTransformName.addModifyListener( simpleModifyListener );
-    fdTransformName = new FormData();
-    fdTransformName.left = new FormAttachment( MIDDLE, 0 );
-    fdTransformName.top = new FormAttachment( 0, MARGIN );
+    
+    fdTransformName.left = new FormAttachment( middle, 0 );
+    fdTransformName.top = new FormAttachment( 0, margin );
     fdTransformName.right = new FormAttachment( 100, 0 );
     wTransformName.setLayoutData( fdTransformName );
-    lastControl = wTransformName;
+
 
     wctfContainer = new CTabFolder( shell, SWT.BORDER );
     PropsUi.setLook( wctfContainer, Props.WIDGET_STYLE_TAB );
@@ -233,45 +211,14 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     addScriptTab();
     addFieldsTab();
     // checkPython();
-
+    buildButtonBar().ok(e -> ok()).cancel(e -> cancel()).build();
+    
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
-    fd.top = new FormAttachment( wTransformName, MARGIN );
+    fd.top = new FormAttachment( wSpacer, margin );
     fd.right = new FormAttachment( 100, 0 );
-    fd.bottom = new FormAttachment( 100, -50 );
+    fd.bottom = new FormAttachment( wOk, -margin );
     wctfContainer.setLayoutData( fd );
-
-    // some buttons
-    wOk = new Button( shell, SWT.PUSH );
-    wOk.setText( BaseMessages.getString( PKG, "System.Button.OK" ) ); //$NON-NLS-1$
-    wOk.addListener( SWT.Selection, new Listener() {
-      @Override public void handleEvent( Event e ) {
-        ok();
-      }
-    } );
-    wCancel = new Button( shell, SWT.PUSH );
-    wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) ); //$NON-NLS-1$
-    wCancel.addListener( SWT.Selection, new Listener() {
-      @Override public void handleEvent( Event e ) {
-        cancel();
-      }
-    } );
-    setButtonPositions( new Button[] { wOk, wCancel }, MARGIN, null );
-
-    lsDef = new SelectionAdapter() {
-      @Override public void widgetDefaultSelected( SelectionEvent e ) {
-        ok();
-      }
-    };
-
-    wTransformName.addSelectionListener( lsDef );
-
-    // Detect X or ALT-F4 or something that kills this window...
-    shell.addShellListener( new ShellAdapter() {
-      @Override public void shellClosed( ShellEvent e ) {
-        cancel();
-      }
-    } );
 
     getData( inputMeta );
 
@@ -280,13 +227,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wctfContainer.setSelection( 0 );
     // Set the shell size, based upon previous time...
     setSize();
+    
+    loading = false;
 
-    shell.open();
-    while ( !shell.isDisposed() ) {
-      if ( !display.readAndDispatch() ) {
-        display.sleep();
-      }
-    }
+    BaseDialog.defaultShellHandling(shell, c -> ok(), c -> cancel());
+
     return transformName;
   }
 
@@ -325,7 +270,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     PropsUi.setLook( inputFramesLab );
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
-    fd.top = new FormAttachment( wgOptions, MARGIN );
+    fd.top = new FormAttachment( wgOptions, margin );
     inputFramesLab.setLayoutData( fd );
     lastControl = inputFramesLab;
 
@@ -346,8 +291,8 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wtvInputFrames =
         new TableView( variables, wcConfig, SWT.FULL_SELECTION | SWT.MULTI, colinf, 1, simpleModifyListener, props );
     fd = new FormData();
-    fd.top = new FormAttachment( lastControl, MARGIN );
-    fd.bottom = new FormAttachment( 100, -MARGIN * 2 );
+    fd.top = new FormAttachment( lastControl, margin );
+    fd.bottom = new FormAttachment( 100, -margin * 2 );
     fd.left = new FormAttachment( 0, 0 );
     fd.right = new FormAttachment( 100, 0 );
     wtvInputFrames.setLayoutData( fd );
@@ -355,7 +300,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
     fd.top = new FormAttachment( 0, 0 );
-    fd.right = new FormAttachment( 100, -MARGIN * 2 );
+    fd.right = new FormAttachment( 100, -margin * 2 );
     fd.bottom = new FormAttachment( 100, 0 );
     wcConfig.setLayoutData( fd );
 
@@ -402,8 +347,8 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wbScriptBrowse.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.Browse.Button" ) );
     props.setLook( wbScriptBrowse );
     fd = new FormData();
-    fd.right = new FormAttachment( 100, -MARGIN );
-    fd.top = new FormAttachment( lastControl, MARGIN );
+    fd.right = new FormAttachment( 100, -margin );
+    fd.top = new FormAttachment( lastControl, margin );
     wbScriptBrowse.setLayoutData( fd );
 
     wbScriptBrowse.addSelectionListener( new SelectionAdapter() {
@@ -424,9 +369,9 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wtvScriptLocation = new TextVar( variables, wcScript, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     PropsUi.setLook( wtvScriptLocation );
     fd = new FormData();
-    fd.left = new FormAttachment( wlScriptLocation, MARGIN );
-    fd.top = new FormAttachment( lastControl, MARGIN );
-    fd.right = new FormAttachment( wbScriptBrowse, -MARGIN );
+    fd.left = new FormAttachment( wlScriptLocation, margin );
+    fd.top = new FormAttachment( lastControl, margin );
+    fd.right = new FormAttachment( wbScriptBrowse, -margin );
     wtvScriptLocation.setLayoutData( fd );
     lastControl = wtvScriptLocation;
 
@@ -435,7 +380,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlScript.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ManualScript.Label" ) );
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
-    fd.top = new FormAttachment( lastControl, MARGIN );
+    fd.top = new FormAttachment( lastControl, margin );
     wlScript.setLayoutData( fd );
     lastControl = wlScript;
 
@@ -459,7 +404,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wlContinueOnUnsetVars.setToolTipText(
         "Don't raise an error if specified variables are not set in python after " + "script has executed" );
     fd = new FormData();
-    fd.bottom = new FormAttachment( 100, -MARGIN * 2 );
+    fd.bottom = new FormAttachment( 100, -margin * 2 );
     fd.left = new FormAttachment( 0, 0 );
     fd.right = new FormAttachment( FIRST_LABEL_RIGHT_PERCENTAGE, 0 );
     wlContinueOnUnsetVars.setLayoutData( fd );
@@ -467,9 +412,9 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wbContinueOnUnsetVars = new Button( wcScript, SWT.CHECK );
     PropsUi.setLook( wbContinueOnUnsetVars );
     fd = new FormData();
-    fd.left = new FormAttachment( wlContinueOnUnsetVars, MARGIN );
+    fd.left = new FormAttachment( wlContinueOnUnsetVars, margin );
     fd.right = new FormAttachment( SECOND_PROMPT_RIGHT_PERCENTAGE, 0 );
-    fd.bottom = new FormAttachment( 100, -MARGIN * 2 );
+    fd.bottom = new FormAttachment( 100, -margin * 2 );
     wbContinueOnUnsetVars.setLayoutData( fd );
 
     wlPyVarsToGet = new Label( wcScript, SWT.RIGHT );
@@ -478,15 +423,15 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
     fd.right = new FormAttachment( FIRST_LABEL_RIGHT_PERCENTAGE, 0 );
-    fd.bottom = new FormAttachment( wbContinueOnUnsetVars, -MARGIN );
+    fd.bottom = new FormAttachment( wbContinueOnUnsetVars, -margin );
     wlPyVarsToGet.setLayoutData( fd );
 
     wtvPyVarsToGet = new TextVar( variables, wcScript, SWT.SINGLE | SWT.LEAD | SWT.BORDER );
     PropsUi.setLook( wtvPyVarsToGet );
     fd = new FormData();
-    fd.left = new FormAttachment( wlPyVarsToGet, MARGIN );
+    fd.left = new FormAttachment( wlPyVarsToGet, margin );
     fd.right = new FormAttachment( SECOND_PROMPT_RIGHT_PERCENTAGE, 0 );
-    fd.bottom = new FormAttachment( wbContinueOnUnsetVars, -MARGIN );
+    fd.bottom = new FormAttachment( wbContinueOnUnsetVars, -margin );
     wtvPyVarsToGet.setLayoutData( fd );
     wtvPyVarsToGet.addFocusListener( new FocusAdapter() {
       @Override public void focusLost( FocusEvent e ) {
@@ -500,29 +445,12 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
       }
     } );
 
-    /* Button wTestScriptScript = new Button( wcScript, SWT.PUSH );
-    wTestScriptScript.setText( BaseMessages.getString( PKG, "RScriptExecutorDialog.TestScript.Button" ) );
-    wTestScriptScript.setToolTipText(
-        BaseMessages.getString( PKG, "RScriptExecutorDialog.TestScript.Button.TipText" ) );
-    fd = new FormData();
-    fd.bottom = new FormAttachment( 100, -MARGIN * 2 );
-    fd.left = new FormAttachment( 0, 0 );
-    wTestScriptScript.setLayoutData( fd );
-    wTestScriptScript.addListener( SWT.Selection, new Listener() {
-      @Override
-      public void handleEvent( Event e ) {
-        CPythonScriptExecutorMeta meta = new CPythonScriptExecutorMeta();
-        getInfo( meta );
-        testScript( meta );
-      }
-    } ); */
-
     wstcScriptEditor.addModifyListener( simpleModifyListener );
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
-    fd.top = new FormAttachment( lastControl, MARGIN );
-    fd.right = new FormAttachment( 100, -2 * MARGIN );
-    fd.bottom = new FormAttachment( wtvPyVarsToGet, -MARGIN );
+    fd.top = new FormAttachment( lastControl, margin );
+    fd.right = new FormAttachment( 100, -2 * margin );
+    fd.bottom = new FormAttachment( wtvPyVarsToGet, -margin );
     wstcScriptEditor.setLayoutData( fd );
 
     fd = new FormData();
@@ -553,8 +481,8 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     PropsUi.setLook( wlOutputFields );
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
-    fd.right = new FormAttachment( MIDDLE, -MARGIN );
-    fd.top = new FormAttachment( 0, MARGIN );
+    fd.right = new FormAttachment( middle, -margin );
+    fd.top = new FormAttachment( 0, margin );
     wlOutputFields.setLayoutData( fd );
     lastControl = wlOutputFields;
 
@@ -564,7 +492,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wbVarsToFields.setToolTipText(
         BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.VarsToFields.Button.TipText" ) ); //$NON-NLS-1$
     fd = new FormData();
-    fd.bottom = new FormAttachment( 100, -MARGIN * 2 );
+    fd.bottom = new FormAttachment( 100, -margin * 2 );
     fd.left = new FormAttachment( 0, 0 );
     wbVarsToFields.setLayoutData( fd );
     wbVarsToFields.addListener( SWT.Selection, new Listener() {
@@ -579,8 +507,8 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wbGetFields
         .setToolTipText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.GetFrameFields.Button.TipText" ) );
     fd = new FormData();
-    fd.bottom = new FormAttachment( 100, -MARGIN * 2 );
-    fd.left = new FormAttachment( wbVarsToFields, MARGIN * 2 );
+    fd.bottom = new FormAttachment( 100, -margin * 2 );
+    fd.left = new FormAttachment( wbVarsToFields, margin * 2 );
     wbGetFields.setLayoutData( fd );
     wbGetFields.addListener( SWT.Selection, new Listener() {
       @Override public void handleEvent( Event event ) {
@@ -594,16 +522,16 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     Label wlIncludeRowIndex = new Label( wcFields, SWT.RIGHT );
     PropsUi.setLook( wlIncludeRowIndex );
     fd = new FormData();
-    fd.bottom = new FormAttachment( 100, -MARGIN * 2 );
-    fd.left = new FormAttachment( wbGetFields, MARGIN * 2 );
+    fd.bottom = new FormAttachment( 100, -margin * 2 );
+    fd.left = new FormAttachment( wbGetFields, margin * 2 );
     wlIncludeRowIndex.setLayoutData( fd );
 
     wbIncludeRowIndex = new Button( wcFields, SWT.CHECK );
     wbIncludeRowIndex
         .setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.IncludeFrameRowIndex.Button" ) );
     fd = new FormData();
-    fd.bottom = new FormAttachment( 100, -MARGIN * 2 );
-    fd.left = new FormAttachment( wlIncludeRowIndex, MARGIN * 2 );
+    fd.bottom = new FormAttachment( 100, -margin * 2 );
+    fd.left = new FormAttachment( wlIncludeRowIndex, margin * 2 );
     wbIncludeRowIndex.setLayoutData( fd );
     wbIncludeRowIndex.setEnabled( false );
 
@@ -620,8 +548,8 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
         new TableView( variables, wcFields, SWT.FULL_SELECTION | SWT.MULTI, colinf2, 1, simpleModifyListener,
             props );
     fd = new FormData();
-    fd.top = new FormAttachment( lastControl, MARGIN * 2 );
-    fd.bottom = new FormAttachment( wbVarsToFields, -MARGIN * 2 );
+    fd.top = new FormAttachment( lastControl, margin * 2 );
+    fd.bottom = new FormAttachment( wbVarsToFields, -margin * 2 );
     fd.left = new FormAttachment( 0, 0 );
     fd.right = new FormAttachment( 100, 0 );
     wtvOutputFields.setLayoutData( fd );
@@ -699,49 +627,6 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 	          BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ErrorGettingFields" ), ex );
 	    }
   }
-  
-//  private void getFrameFields( CPythonScriptExecutorMeta meta ) {
-//
-//    try {
-//      meta.setOutputFields( new RowMeta() );
-//      
-//      List<String> frameNames = meta.getFrameNames();
-//      List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
-//      List<IRowMeta> incomingMetas = new ArrayList<IRowMeta>();
-//      if ( frameNames.size() > 0 && infoStreams.size() > 0 ) {
-//
-//        for ( int i = 0; i < infoStreams.size(); i++ ) {
-//          incomingMetas.add( pipelineMeta.getTransformFields( variables, infoStreams.get( i ).getTransformMeta() ) );
-//        }
-//      }
-//
-//      ShowMessageDialog
-//          smd =
-//          new ShowMessageDialog( this.getParent(), SWT.YES | SWT.NO | SWT.ICON_WARNING,
-//              BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.GetFields.Dialog.Title" ),
-//              BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.GetFields.Dialog.Message" ), false );
-//      int buttonID = smd.open();
-//
-//      if ( buttonID == SWT.YES ) {
-//        IRowMeta rowMeta = new RowMeta();
-//        meta.getFields( rowMeta, "bogus", incomingMetas.toArray( new IRowMeta[incomingMetas.size()] ), null,
-//            variables, null );
-//
-//        wtvOutputFields.clearAll();
-//        for ( int i = 0; i < rowMeta.size(); i++ ) {
-//          TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
-//          item.setText( 1, Const.NVL( rowMeta.getValueMeta( i ).getName(), "" ) );
-//          item.setText( 2, Const.NVL( rowMeta.getValueMeta( i ).getTypeDesc(), "" ) );
-//        }
-//        wtvOutputFields.removeEmptyRows();
-//        wtvOutputFields.setRowNums();
-//        wtvOutputFields.optWidth( true );
-//      }
-//    } catch ( HopException ex ) {
-//      new ErrorDialog( shell, transformName,
-//          BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ErrorGettingFields" ), ex );
-//    }
-//  }
 
   private void addRowsToProcessControllers() {
     wlRowsToProcess = new Label( wgRowHandling, SWT.RIGHT );
@@ -750,7 +635,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
     fd.right = new FormAttachment( FIRST_LABEL_RIGHT_PERCENTAGE, 0 );
-    fd.top = new FormAttachment( lastControl, MARGIN );
+    fd.top = new FormAttachment( lastControl, margin );
     wlRowsToProcess.setLayoutData( getFirstLabelFormData() );
 
     wcvRowsToProcess = new ComboVar( variables, wgRowHandling, SWT.BORDER | SWT.READ_ONLY );
@@ -922,7 +807,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     FormData fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
     fd.right = new FormAttachment( 100, 0 );
-    fd.top = new FormAttachment( wgRowHandling, MARGIN );
+    fd.top = new FormAttachment( wgRowHandling, margin );
     wgOptions.setLayoutData( fd );
 
     addIncludeInputInOutputControllers();
@@ -1092,51 +977,6 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 	    wtvOutputFields.setRowNums();
 	    wtvOutputFields.optWidth( true );
   }
-  
-//  private void varsToTableFields( CPythonScriptExecutorMeta meta ) {
-//    // List<IRowMeta> incomingMetas;
-//    IRowMeta incomingMetas = new RowMeta();
-//    if ( meta.isIncludeInputAsOutput() ) {	
-//      List<String> frameNames = meta.getFrameNames();
-//      List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
-//      if ( frameNames.size() > 0 && infoStreams.size() > 0 ) {
-//        // incomingMetas = new ArrayList<IRowMeta>();
-//
-//        try {
-//          for ( int i = 0; i < infoStreams.size(); i++ ) {
-//            incomingMetas.addRowMeta( pipelineMeta.getTransformFields( variables, infoStreams.get( i ).getTransformMeta() ) );
-//          }
-//        } catch ( HopException e ) {
-//          new ErrorDialog( shell, transformName,
-//              BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ErrorGettingFields" ), e );
-//          return;
-//        }
-//      }
-//    }
-//
-//    wtvOutputFields.clearAll();
-//    if ( incomingMetas.size() > 0 ) {
-//      for ( IValueMeta vm : incomingMetas.getValueMetaList() ) {
-//        TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
-//        item.setText( 1, Const.NVL( vm.getName(), "" ) );
-//        item.setText( 2, Const.NVL( vm.getTypeDesc(), "" ) );
-//      }
-//    }
-//    String vars = wtvPyVarsToGet.getText();
-//    if ( !org.apache.hop.core.util.Utils.isEmpty( vars ) ) {
-//      String[] vA = vars.split( "," );
-//      if ( vA.length > 0 ) {
-//        for ( String var : vA ) {
-//          TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
-//          item.setText( 1, Const.NVL( var.trim(), "" ) );
-//          item.setText( 2, "String" );
-//        }
-//        wtvOutputFields.removeEmptyRows();
-//        wtvOutputFields.setRowNums();
-//        wtvOutputFields.optWidth( true );
-//      }
-//    }
-//  }
 
   private List<String> stringToList( String list ) {
     List<String> result = new ArrayList<String>();
@@ -1201,18 +1041,11 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
           frameName = CPythonScriptExecutorMeta.DEFAULT_FRAME_NAME_PREFIX + i;
         }
         inputFrames.add(new CPythonInputFrame(stepName, frameName));
-//        frameNames.add( frameName );
-//        stepNames.add( stepName );
+
       }
     }
 
     meta.setInputFrames(inputFrames);
-//    List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
-//    for ( int i = 0; i < infoStreams.size(); i++ ) {
-//      infoStreams.get( i ).setSubject( stepNames.get( i ) );
-//    }
-
-    // output field data from table
     numNonEmpty = wtvOutputFields.nrNonEmpty();
     List<CPythonOutputField> outFields = new ArrayList<>();
     
@@ -1225,25 +1058,6 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
       }
     }
     meta.setOutputFields( outFields );
-//    numNonEmpty = wtvOutputFields.nrNonEmpty();
-//    IRowMeta outRM = numNonEmpty > 0 ? new RowMeta() : null;
-//    for ( int i = 0; i < numNonEmpty; i++ ) {
-//      TableItem item = wtvOutputFields.getNonEmpty( i );
-//      String name = item.getText( 1 ).trim();
-//      String type = item.getText( 2 ).trim();
-//      if ( !org.apache.hop.core.util.Utils.isEmpty( name ) && !org.apache.hop.core.util.Utils.isEmpty( type ) ) {
-//        //IValueMeta vm = new ValueMeta( name, ValueMeta.getType( type ) );
-//        IValueMeta vm;
-//        try {
-//          vm = ValueMetaFactory.createValueMeta( name, ValueMetaFactory.getIdForValueMeta( type ) );
-//          outRM.addValueMeta( vm );
-//        } catch ( HopPluginException e ) {
-//          e.printStackTrace();
-//        }
-//      }
-//    }
-//
-//    meta.setOutputFields( outRM );
   }
 
   private void handleReservoirSamplingChange() {
@@ -1291,29 +1105,6 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 	  wtvInputFrames.setRowNums();
 	  wtvInputFrames.optWidth( true );
   }
-//    List<String> frameNames = meta.getFrameNames();
-//    // List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
-//    List<IStream> infoStreams = meta.getStepIOMeta().getInfoStreams();
-//
-//    wtvInputFrames.clearAll();
-//    for ( int i = 0; i < infoStreams.size(); i++ ) {
-//      if ( infoStreams.get( i ).getSubject() != null ) {
-//        String stepName = infoStreams.get( i ).getSubject().toString();
-//        String frameName = frameNames.get( i );
-//
-//        TableItem item = new TableItem( wtvInputFrames.table, SWT.NONE );
-//        item.setText( 1, Const.NVL( stepName, "" ) ); //$NON-NLS-1$
-//        item.setText( 2, Const.NVL( frameName, "" ) ); //$NON-NLS-1$
-//
-//        // TransformMeta m = pipelineMeta.findTransform(stepName);
-//        // infoStreams.get(i).setTransformMeta(m);
-//      }
-//    }
-//
-//    wtvInputFrames.removeEmptyRows();
-//    wtvInputFrames.setRowNums();
-//    wtvInputFrames.optWidth( true );
-//  }
 
   protected void setOutputFieldsTableFields( CPythonScriptExecutorMeta meta ) {
 	  List<CPythonOutputField> outFields = meta.getOutputFields();
@@ -1331,23 +1122,6 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 	    wtvOutputFields.removeEmptyRows();
 	    wtvOutputFields.setRowNums();
 	    wtvOutputFields.optWidth( true );
-//    IRowMeta outFields = meta.getOutputFields();
-//
-//    if ( outFields != null && outFields.size() > 0 ) {
-//      for ( int i = 0; i < outFields.size(); i++ ) {
-//        IValueMeta vm = outFields.getValueMeta( i );
-//        String name = vm.getName();
-//        String type = vm.getTypeDesc();
-//
-//        TableItem item = new TableItem( wtvOutputFields.table, SWT.NONE );
-//        item.setText( 1, Const.NVL( name, "" ) ); //$NON-NLS-1$
-//        item.setText( 2, Const.NVL( type, "" ) ); //$NON-NLS-1$
-//      }
-//
-//      wtvOutputFields.removeEmptyRows();
-//      wtvOutputFields.setRowNums();
-//      wtvOutputFields.optWidth( true );
-//    }
   }
 
   private void cancel() {
@@ -1379,7 +1153,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     FormData fd = new FormData();
     fd.left = new FormAttachment( 0, 0 );
     fd.right = new FormAttachment( FIRST_LABEL_RIGHT_PERCENTAGE, 0 );
-    fd.top = new FormAttachment( lastControl, MARGIN );
+    fd.top = new FormAttachment( lastControl, margin );
     return fd;
   }
 
@@ -1387,22 +1161,22 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     FormData fd = new FormData();
     fd.left = new FormAttachment( prevControl, 0 );
     fd.right = new FormAttachment( SECOND_LABEL_RIGHT_PERCENTAGE, 0 );
-    fd.top = new FormAttachment( lastControl, MARGIN );
+    fd.top = new FormAttachment( lastControl, margin );
     return fd;
   }
 
   private FormData getFirstPromptFormData( Control prevControl ) {
     FormData fd = new FormData();
-    fd.left = new FormAttachment( prevControl, MARGIN );
+    fd.left = new FormAttachment( prevControl, margin );
     fd.right = new FormAttachment( FIRST_PROMPT_RIGHT_PERCENTAGE, 0 );
-    fd.top = new FormAttachment( lastControl, MARGIN );
+    fd.top = new FormAttachment( lastControl, margin );
     return fd;
   }
 
   private FormData getSecondPromptFormData( Control prevControl ) {
     FormData fd = new FormData();
-    fd.left = new FormAttachment( prevControl, MARGIN );
-    fd.top = new FormAttachment( lastControl, MARGIN );
+    fd.left = new FormAttachment( prevControl, margin );
+    fd.top = new FormAttachment( lastControl, margin );
     fd.right = new FormAttachment( SECOND_PROMPT_RIGHT_PERCENTAGE, 0 );
     return fd;
   }
