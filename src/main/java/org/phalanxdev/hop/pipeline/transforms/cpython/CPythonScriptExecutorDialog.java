@@ -190,17 +190,6 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
     changed = inputMeta.hasChanged();
 
-    fdlTransformName.left = new FormAttachment( 0, 0 );
-    fdlTransformName.right = new FormAttachment( middle, -margin );
-    fdlTransformName.top = new FormAttachment( 0, margin );
-    wlTransformName.setLayoutData( fdlTransformName );
-    
-    fdTransformName.left = new FormAttachment( middle, 0 );
-    fdTransformName.top = new FormAttachment( 0, margin );
-    fdTransformName.right = new FormAttachment( 100, 0 );
-    wTransformName.setLayoutData( fdTransformName );
-
-
     wctfContainer = new CTabFolder( shell, SWT.BORDER );
     PropsUi.setLook( wctfContainer, Props.WIDGET_STYLE_TAB );
     if (!EnvironmentUtils.getInstance().isWeb()) {
@@ -210,7 +199,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     addConfigureTab();
     addScriptTab();
     addFieldsTab();
-    // checkPython();
+    
     buildButtonBar().ok(e -> ok()).cancel(e -> cancel()).build();
     
     fd = new FormData();
@@ -233,21 +222,6 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     BaseDialog.defaultShellHandling(shell, c -> ok(), c -> cancel());
 
     return transformName;
-  }
-
-  private void checkPython() {
-    if ( !PythonSession.pythonAvailable() ) {
-      // try initializing
-      try {
-        if ( !PythonSession.initSession( "python", variables, log ) ) {
-          String envEvalResults = PythonSession.getPythonEnvCheckResults();
-          logError(
-              "Was unable to start the python environment:\n\n" + ( envEvalResults != null ? envEvalResults : "" ) );
-        }
-      } catch ( HopException ex ) {
-        logError( "Was unable to start the python environment:", ex );
-      }
-    }
   }
 
   private void addConfigureTab() {
@@ -339,13 +313,13 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     } );
 
     wlScriptLocation = new Label( wcScript, SWT.RIGHT );
-    props.setLook( wlScriptLocation );
+    PropsUi.setLook( wlScriptLocation );
     wlScriptLocation.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.ScriptFile.Label" ) );
     wlScriptLocation.setLayoutData( getFirstLabelFormData() );
 
     wbScriptBrowse = new Button( wcScript, SWT.PUSH | SWT.CENTER );
     wbScriptBrowse.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.Browse.Button" ) );
-    props.setLook( wbScriptBrowse );
+    PropsUi.setLook( wbScriptBrowse );
     fd = new FormData();
     fd.right = new FormAttachment( 100, -margin );
     fd.top = new FormAttachment( lastControl, margin );
