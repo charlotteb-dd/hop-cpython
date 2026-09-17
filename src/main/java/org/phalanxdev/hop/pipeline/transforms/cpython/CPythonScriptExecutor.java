@@ -481,6 +481,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
     // should try to continue after a script execution error. Note that ServerUtils
     // already logs warning messages and strips them from the error output.
     if ( !org.apache.hop.core.util.Utils.isEmpty( outAndErr.get( 1 ) ) ) {
+      logError( "Python Error/Warning Output:\n" + outAndErr.get( 1 ) );
       throw new HopException( outAndErr.get( 1 ) );
     }
   }
