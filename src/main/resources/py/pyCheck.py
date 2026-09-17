@@ -187,5 +187,10 @@ def append_to_results(line):
     global global_results
     global_results += line + '\n'
 
-
-main()
+import traceback
+try:
+    main()
+except Exception as e:
+    with open('/tmp/pycheck_error_fatal.log', 'w', encoding='utf-8') as f:
+        f.write(traceback.format_exc())
+    raise

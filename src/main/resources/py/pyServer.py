@@ -70,7 +70,7 @@ if len(sys.argv) > 2:
 
 
 def runServer():
-    if _global_startup_debug == True:
+    if _global_startup_debug:
         print('Python server starting...\n')
         print('Arrow support available: %s\n' % _global_arrow_available)
     global _global_connection
@@ -82,48 +82,55 @@ def runServer():
     pid_response['arrow_available'] = _global_arrow_available
     send_response(pid_response, True)
     try:
-        while 1:
+        while True:
             message = receive_message(True)
-            if 'command' in message:
-                command = message['command']
+            command = message.get('command')
+            if not command:
+                if _global_startup_debug:
+                    print('message did not contain a command field!')
+                continue
+				
+            #if 'command' in message:
+             #   command = message['command']
                 # Check if we should use Arrow for this session
-                if 'use_arrow' in message:
-                    global _global_use_arrow
-                    _global_use_arrow = message['use_arrow'] and _global_arrow_available
+            if 'use_arrow' in message:
+                global _global_use_arrow
+                _global_use_arrow = message['use_arrow'] and _global_arrow_available
                 
-                if command == 'accept_rows':
-                    if _global_use_arrow and _global_arrow_available:
+            match command:
+                case 'accept_rows':
+                    if _global_use_arrow:
                         receive_rows_arrow(message)
                     else:
                         receive_rows(message)
-                elif command == 'get_frame':
-                    if _global_use_arrow and _global_arrow_available:
+                case 'get_frame':
+                    if _global_use_arrow:
                         send_rows_arrow(message)
                     else:
                         send_rows(message)
-                elif command == 'execute_script':
+                case 'execute_script':
                     execute_script(message)
-                elif command == 'get_variable_list':
+                case 'get_variable_list':
                     send_variable_list(message)
-                elif command == 'get_variable_type':
+                case 'get_variable_type':
                     send_variable_type(message)
-                elif command == 'get_variable_value':
+                case 'get_variable_value':
                     send_variable_value(message)
-                elif command == 'get_image':
+                case 'get_image':
                     send_image_as_png(message)
-                elif command == 'variable_is_set':
+                case 'variable_is_set':
                     send_variable_is_set(message)
-                elif command == 'set_variable_value':
+                case 'set_variable_value':
                     receive_variable_value(message)
-                elif command == 'get_debug_buffer':
+                case 'get_debug_buffer':
                     send_debug_buffer()
-                elif command == 'shutdown':
-                    if _global_startup_debug == True:
+                case 'shutdown':
+                    if _global_startup_debug:
                         print ('Received shutdown command...\n')
                     exit()
-            else:
-                if _global_startup_debug == True:
-                    print('message did not contain a command field!')
+                case _:
+                    if _global_startup_debug:
+                        print(f'Unknown command: {command}')
     finally:
         _global_connection.close()
 
@@ -353,28 +360,37 @@ def send_response(response, isJson):
         _global_connection.sendall(struct.pack('>L', len(response_bytes)))
         _global_connection.sendall(response_bytes)
 
-
 def receive_message(isJson):
     size = 0
-    length = None
-    if _global_python3 is True:
-        length = bytearray()
-    else:
-        length = ''
+    length = bytearray() if _global_python3 else ''
     while len(length) < 4:
-        if _global_python3 is True:
-            length += _global_connection.recv(4);
-        else:
-            length += _global_connection.recv(4);
+        chunk = _global_connection.recv(4 - len(length))
+        if not chunk:
+            sys.exit(0) # Connection closed
+        length += chunk
+    #length += _global_connection.recv(4);
 
     size = struct.unpack('>L', length)[0]
 
-    data = ''
-    while len(data) < size:
-        if _global_python3 is True:
-            data += _global_connection.recv(size).decode('ascii',"backslashreplace");
-        else:
-            data += _global_connection.recv(size);
+    #data += _global_connection.recv(size);
+            
+    if _global_python3 is True:
+        data_bytes = bytearray()
+        while len(data_bytes) < size:
+            chunk = _global_connection.recv(size - len(data_bytes))
+            if not chunk:
+                sys.exit(0)
+            data_bytes += chunk
+        
+        # Decode the fully assembled byte array as UTF-8
+        data = data_bytes.decode('utf-8')
+    else:
+        data = ''
+        while len(data) < size:
+            chunk = _global_connection.recv(size - len(data))
+            if not chunk:
+                sys.exit(0)
+            data += chunk
     if isJson is True:
         return json.loads(data)
     return data
@@ -621,5 +637,10 @@ def is_json(json_data):
     except:
         return False
 
-
-runServer()
+import traceback
+try:
+    runServer()
+except Exception as e:
+    with open('/tmp/hop_server_fatal_crash.log', 'w', encoding='utf-8') as f:
+        f.write(traceback.format_exc())
+    raise
