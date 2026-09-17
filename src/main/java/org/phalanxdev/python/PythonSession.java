@@ -806,6 +806,9 @@ public class PythonSession {
       ProcessBuilder
           processBuilder =
           new ProcessBuilder( pythonCommand, serverScript, "" + localPort, debug ? "debug" : "" );
+      Map<String, String> env = processBuilder.environment();
+      env.put("PYTHONIOENCODING", "utf-8");
+      env.put("PYTHONUTF8", "1");
       serverProcess = processBuilder.start();
       
       // Start a thread to capture error output from the Python process
@@ -866,7 +869,14 @@ public class PythonSession {
       throws HopException {
 
     if ( s_sessionSingleton != null ) {
-      return true;
+    	// check if the process is still alive
+    	Process pyProcess = s_sessionSingleton.serverProcess;
+    	if (pyProcess != null && !pyProcess.isAlive()) {
+    		s_sessionSingleton.shutdown(); // Adjust to whatever your cleanup method is named
+            s_sessionSingleton = null;
+    	}
+    	else
+    		return true;
       // throw new HopException( BaseMessages.getString( ServerUtils.PKG, "PythonSession.Error.EnvAlreadyAvailable" ) );
     }
 
