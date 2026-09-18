@@ -160,8 +160,10 @@ public class ServerUtils {
       }
       fieldMeta.put( FIELD_NAME_KEY, fieldName );
       switch ( v.getType() ) {
-        case IValueMeta.TYPE_NUMBER:
-        case IValueMeta.TYPE_INTEGER:
+      case IValueMeta.TYPE_INTEGER:
+    	  fieldMeta.put( FIELD_TYPE_KEY, "integer" );
+    	  break;
+      case IValueMeta.TYPE_NUMBER:
         case IValueMeta.TYPE_BIGNUMBER:
           fieldMeta.put( FIELD_TYPE_KEY, FIELD_TYPE_NUMBER );
           break;
@@ -499,6 +501,7 @@ public class ServerUtils {
           boolean isSocketDeath = errMsg.contains("broken pipe") 
                                || errMsg.contains("relais brisé") 
                                || errMsg.contains("stream") 
+                               || errMsg.contains("connection reset") 
                                || ex instanceof java.net.SocketException;
 
           if (isSocketDeath) {
@@ -569,24 +572,6 @@ public class ServerUtils {
           }
 
           writeDelimitedToOutputStream( (byte[]) rowsInfo.get( 0 ), outputStream );
-
-          /* // bos = new ByteArrayOutputStream();
-          // BufferedWriter bw = new BufferedWriter( new OutputStreamWriter( bos ) );
-          StringBuilder csv = rowsToCSV( meta, rows );
-          Charset utf8 = Charset.forName( "UTF-8" );
-          ByteBuffer
-              bb =
-              utf8.newEncoder().onUnmappableCharacter( CodingErrorAction.IGNORE )
-                  .onMalformedInput( CodingErrorAction.IGNORE ).encode( CharBuffer.wrap( csv.toString() ) );
-          // byte[] ptext = csv.toString().getBytes( Charset.forName( "UTF-8" ) );
-          System.out.println( csv.toString() );
-          System.out.println( "-----------------" );
-          // bw.write( csv.toString() );
-          // bw.flush();
-          // bw.close();
-          // bytes = bos.toByteArray();
-          // writeDelimitedToOutputStream( bytes, outputStream );
-          writeDelimitedToOutputStream( bb.array(), outputStream ); */
         }
 
         String serverAck = receiveServerAck( inputStream );
@@ -594,7 +579,21 @@ public class ServerUtils {
           throw new HopException( BaseMessages.getString( PKG, "ServerUtils.Error.TransferOfRowsFailed" ) + serverAck );
         }
       } catch ( IOException ex ) {
-        throw new HopException( ex );
+    	  String errMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+          
+          boolean isSocketDeath = errMsg.contains("broken pipe") 
+                               || errMsg.contains("relais brisé") 
+                               || errMsg.contains("stream") 
+                               || errMsg.contains("connection reset") 
+                               || ex instanceof java.net.SocketException;
+
+          if (isSocketDeath) {
+              System.err.println("Socket death detected during DATA TRANSFER. Resetting Python server...");
+              PythonSession.resetDeadSession();
+              throw new HopException( "Broken Pipe during data transfer. Python server reset for next run.", ex );
+          }
+          
+          throw new HopException( ex );
       }
     } else if ( debug ) {
       outputCommandDebug( command, log );
@@ -664,9 +663,25 @@ public class ServerUtils {
 
         bytes = readDelimitedFromInputStream( inputStream );
         String csv = new String( bytes, Charset.forName( "UTF-8" ) );
+        log.logDebug("csv to read :" + csv);
         result = csvToRows( csv, convertedMeta, numRows );
       } catch ( IOException ex ) {
-        throw new HopException( ex );
+    	  String errMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+          
+          // Notice I added "connection reset" to catch the first crash!
+          boolean isSocketDeath = errMsg.contains("broken pipe") 
+                               || errMsg.contains("relais brisé") 
+                               || errMsg.contains("stream") 
+                               || errMsg.contains("connection reset") 
+                               || ex instanceof java.net.SocketException;
+
+          if (isSocketDeath) {
+              System.err.println("Socket death detected during DATA TRANSFER. Resetting Python server...");
+              PythonSession.resetDeadSession();
+              throw new HopException( "Broken Pipe during data transfer. Python server reset for next run.", ex );
+          }
+          
+          throw new HopException( ex );
       }
     } else {
       outputCommandDebug( command, log );
@@ -708,6 +723,13 @@ public class ServerUtils {
               throw new IOException( ex );
             }
             break;
+          case IValueMeta.TYPE_INTEGER:
+        	  try {
+        		  row[i] = Long.valueOf(parsed[i]);
+        	  } catch (NumberFormatException ex) {
+        		  throw new IOException(ex);
+        	  }
+        	  break;
           case IValueMeta.TYPE_BOOLEAN:
             row[i] = parsed[i].equalsIgnoreCase( "true" );
             break;
@@ -754,7 +776,10 @@ public class ServerUtils {
       if ( fieldType.equals( FIELD_TYPE_NUMBER ) ) {
         //vm = new ValueMeta( fieldName, IValueMeta.TYPE_NUMBER );
         vm = ValueMetaFactory.createValueMeta( fieldName, IValueMeta.TYPE_NUMBER );
-      } else if ( fieldType.equals( FIELD_TYPE_STRING ) ) {
+      } else if (fieldType.equals("integer")) {
+    	  vm = ValueMetaFactory.createValueMeta(fieldName, IValueMeta.TYPE_INTEGER);
+      }
+      else if ( fieldType.equals( FIELD_TYPE_STRING ) ) {
         //vm = new ValueMeta( fieldName, IValueMeta.TYPE_STRING );
         vm = ValueMetaFactory.createValueMeta( fieldName, IValueMeta.TYPE_STRING );
       } else if ( fieldType.equals( FIELD_TYPE_DATE ) ) {
@@ -1287,7 +1312,21 @@ public class ServerUtils {
           throw new HopException( BaseMessages.getString( PKG, "ServerUtils.Error.TransferOfRowsFailed" ) + serverAck );
         }
       } catch ( IOException ex ) {
-        throw new HopException( ex );
+    	  String errMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+          
+          boolean isSocketDeath = errMsg.contains("broken pipe") 
+                               || errMsg.contains("relais brisé") 
+                               || errMsg.contains("stream") 
+                               || errMsg.contains("connection reset") 
+                               || ex instanceof java.net.SocketException;
+
+          if (isSocketDeath) {
+              System.err.println("Socket death detected during DATA TRANSFER. Resetting Python server...");
+              PythonSession.resetDeadSession();
+              throw new HopException( "Broken Pipe during data transfer. Python server reset for next run.", ex );
+          }
+          
+          throw new HopException( ex );
       }
     } else if ( debug ) {
       outputCommandDebug( command, log );
@@ -1355,7 +1394,21 @@ public class ServerUtils {
           throw new HopException( "Expected Arrow format but received: " + format );
         }
       } catch ( IOException ex ) {
-        throw new HopException( ex );
+    	  String errMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+          
+          boolean isSocketDeath = errMsg.contains("broken pipe") 
+                               || errMsg.contains("relais brisé") 
+                               || errMsg.contains("stream") 
+                               || errMsg.contains("connection reset") 
+                               || ex instanceof java.net.SocketException;
+
+          if (isSocketDeath) {
+              System.err.println("Socket death detected during DATA TRANSFER. Resetting Python server...");
+              PythonSession.resetDeadSession();
+              throw new HopException( "Broken Pipe during data transfer. Python server reset for next run.", ex );
+          }
+          
+          throw new HopException( ex );
       }
     } else if ( debug ) {
       outputCommandDebug( command, log );

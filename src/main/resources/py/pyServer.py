@@ -332,8 +332,10 @@ def frame_to_fields_list(frame, include_index):
         d = frame[n].dtype
         if d == 'float16' or d == 'float32' or d == 'float64':
             t = 'number'
-        elif d == 'int8' or d == 'int16' or d == 'int32' or d == 'int64':
+        elif d == 'int8' or d == 'int16' or d == 'int32':
             t = 'number'
+        elif d == 'int64':
+            t = 'integer'
         elif d == 'bool':
             t = 'boolean'
         elif d.name.startswith('datetime'):
