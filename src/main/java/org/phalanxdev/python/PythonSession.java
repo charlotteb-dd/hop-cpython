@@ -231,7 +231,8 @@ public class PythonSession {
    * @param requester the session holder
    */
   public static void releaseSession( Object requester ) {
-    s_sessionSingleton.dropSession( requester );
+	  if (s_sessionSingleton != null)
+		  s_sessionSingleton.dropSession( requester );
   }
 
   /**
@@ -865,20 +866,20 @@ public class PythonSession {
    * @throws HopException if there was a problem - missing packages in python,
    *                      or python could not be started for some reason
    */
+  // TODO: sbsxbqxjl
   public static synchronized boolean initSession( String pythonCommand, IVariables vars, ILogChannel log )
       throws HopException {
 
     if ( s_sessionSingleton != null ) {
     	// check if the process is still alive
     	Process pyProcess = s_sessionSingleton.serverProcess;
-    	if (pyProcess != null && !pyProcess.isAlive()) {
-    		s_sessionSingleton.shutdown(); // Adjust to whatever your cleanup method is named
+    	if (pyProcess != null && pyProcess.isAlive()) {
+    		return true;
+    	}
+//    		resetDeadSession();
+    		s_sessionSingleton.shutdown();
             s_sessionSingleton = null;
     	}
-    	else
-    		return true;
-      // throw new HopException( BaseMessages.getString( ServerUtils.PKG, "PythonSession.Error.EnvAlreadyAvailable" ) );
-    }
 
     if ( vars != null && !org.apache.hop.core.util.Utils
         .isEmpty( vars.getVariable( HOP_CPYTHON_COMMAND_PROPERTY_KEY ) ) ) {
@@ -1201,10 +1202,12 @@ public class PythonSession {
   /**
    * Shutdown the python server
    */
+  // TODO: iususxjq
   private void shutdown() {
     if ( !shutdown ) {
+    	shutdown = true;
       try {
-        shutdown = true;
+        
         if ( localSocket != null ) {
           if ( log == null ) {
             System.err.println( "Sending shutdown command..." );
@@ -1233,39 +1236,50 @@ public class PythonSession {
           }
           ServerUtils.sendServerShutdown( localSocket.getOutputStream() );
           localSocket.close();
+        }
+      }
+      catch (Exception ex) {}
+      try {
           if ( serverProcess != null ) {
             serverProcess.destroy();
             serverProcess = null;
           }
-        }
+          if ( pythonPID > 0 ) {
+              ProcessBuilder killer = System.getProperty( "os.name" ).toLowerCase().contains( "win" ) 
+                  ? new ProcessBuilder( "taskkill", "/F", "/PID", "" + pythonPID )
+                  : new ProcessBuilder( "kill", "-9", "" + pythonPID );
+              killer.start();
+            }
+      }
+      catch (Exception ex) {}
 
+      try {
         if ( serverSocket != null ) {
           serverSocket.close();
+          serverSocket = null;
         }
         s_sessionSingleton = null;
-      } catch ( Exception ex ) {
-        ex.printStackTrace();
-        if ( pythonPID > 0 ) {
-          // try to kill process, just in case
-          ProcessBuilder killer;
-          if ( System.getProperty( "os.name" ).toLowerCase().contains( "win" ) ) {
-            killer = new ProcessBuilder( "taskkill", "/F", "/PID", "" + pythonPID );
-          } else {
-            killer = new ProcessBuilder( "kill", "-9", "" + pythonPID );
-          }
-          try {
-            killer.start();
-          } catch ( IOException e ) {
-            e.printStackTrace();
-          }
-        }
-      } finally {
-        if ( serverProcess != null ) {
-          serverProcess.destroy();
-        }
+      } catch ( Exception ex ) {}
+      finally {
+    	  s_sessionSingleton = null;
+    	  if (sessionKey != null)
+    		  pythonServers.remove(sessionKey);
       }
     }
   }
+  
+  public static void resetDeadSession() {
+	    if ( s_sessionSingleton != null ) {
+	      try {
+	        System.err.println("Fatal socket error detected. Forcing Python server reset...");
+	        s_sessionSingleton.shutdown();
+	      } catch (Exception e) {
+	        // Ignore errors during forced cleanup
+	      } finally {
+	        s_sessionSingleton = null;
+	      }
+	    }
+	  }
 
   public static void main( String[] args ) {
     try {
@@ -1279,19 +1293,12 @@ public class PythonSession {
 
       Object[] rowData = { 22, 300.22, "Hello bob", false, new Date(), new Timestamp( new Date().getTime() ), null };
       IRowMeta rowMeta = new RowMeta();
-      //rowMeta.addValueMeta( new ValueMeta( "Field1", IValueMeta.TYPE_INTEGER ) );
       rowMeta.addValueMeta( ValueMetaFactory.createValueMeta( "Field1", IValueMeta.TYPE_INTEGER ) );
-      //rowMeta.addValueMeta( new ValueMeta( "Field2", IValueMeta.TYPE_NUMBER ) );
       rowMeta.addValueMeta( ValueMetaFactory.createValueMeta( "Field2", IValueMeta.TYPE_NUMBER ) );
-      // rowMeta.addValueMeta( new ValueMeta( "Field3", IValueMeta.TYPE_STRING ) );
       rowMeta.addValueMeta( ValueMetaFactory.createValueMeta( "Field3", IValueMeta.TYPE_STRING ) );
-      // rowMeta.addValueMeta( new ValueMeta( "Field4", IValueMeta.TYPE_BOOLEAN ) );
       rowMeta.addValueMeta( ValueMetaFactory.createValueMeta( "Field4", IValueMeta.TYPE_BOOLEAN ) );
-      // rowMeta.addValueMeta( new ValueMeta( "Field5", IValueMeta.TYPE_DATE ) );
       rowMeta.addValueMeta( ValueMetaFactory.createValueMeta( "Field5", IValueMeta.TYPE_DATE ) );
-      // rowMeta.addValueMeta( new ValueMeta( "Field6", IValueMeta.TYPE_TIMESTAMP ) );
       rowMeta.addValueMeta( ValueMetaFactory.createValueMeta( "Field6", IValueMeta.TYPE_TIMESTAMP ) );
-      // rowMeta.addValueMeta( new ValueMeta( "NullField", IValueMeta.TYPE_STRING ) );
       rowMeta.addValueMeta( ValueMetaFactory.createValueMeta( "NullField", IValueMeta.TYPE_STRING ) );
 
       List<Object[]> data = new ArrayList<Object[]>();

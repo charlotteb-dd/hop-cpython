@@ -493,6 +493,19 @@ public class ServerUtils {
           outAndErr.set( 1, "" );
         }
       } catch ( IOException ex ) {
+    	  String errMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+          
+          // Check for common OS-level socket/pipe death phrases (French and English)
+          boolean isSocketDeath = errMsg.contains("broken pipe") 
+                               || errMsg.contains("relais brisé") 
+                               || errMsg.contains("stream") 
+                               || ex instanceof java.net.SocketException;
+
+          if (isSocketDeath) {
+              log.logDebug("Socket death detected during script execution. Resetting Python server...");
+              PythonSession.resetDeadSession(); // Trigger the Kill Switch
+              throw new HopException( "Broken Pipe: Python server connection lost. The server has been reset for your next run.", ex );
+          }
         throw new HopException( ex );
       }
     } else if ( debug ) {
@@ -501,6 +514,8 @@ public class ServerUtils {
 
     return outAndErr;
   }
+  
+
 
   /**
    * Send rows to python to be converted to a pandas data frame
