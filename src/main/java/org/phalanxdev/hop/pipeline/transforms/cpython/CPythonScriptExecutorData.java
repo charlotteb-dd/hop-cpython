@@ -288,6 +288,50 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 
     return outputRows;
   }
+  
+  /**
+   * Thread-safe pip installer. 
+   * Synchronized ensures multiple transforms do not corrupt pip by running concurrently.
+   */
+  public static synchronized void installTransformLibraries(String pythonCommand, List<String> libraries, ILogChannel log) {
+      if (libraries == null || libraries.isEmpty()) {
+          return;
+      }
+      
+      try {
+          if (log != null) log.logBasic("Checking/Installing libraries: " + String.join(", ", libraries));
+          
+          List<String> pipCommand = new ArrayList<>();
+          pipCommand.add(pythonCommand);
+          pipCommand.add("-m");
+          pipCommand.add("pip");
+          pipCommand.add("install");
+          pipCommand.addAll(libraries);
+
+          ProcessBuilder pipPb = new ProcessBuilder(pipCommand);
+          pipPb.redirectErrorStream(true);
+          Process pipProcess = pipPb.start();
+
+          // Read output to prevent freezing
+          java.io.BufferedReader reader = new java.io.BufferedReader(
+              new java.io.InputStreamReader(pipProcess.getInputStream(), java.nio.charset.StandardCharsets.UTF_8)
+          );
+          String line;
+          while ((line = reader.readLine()) != null) {
+              // Only log to debug so we don't spam the UI with "Requirement already satisfied"
+              if (log != null && log.isDebug()) { 
+                  log.logDebug("[Pip Install] " + line);
+              }
+          }
+
+          int exitCode = pipProcess.waitFor();
+          if (exitCode != 0 && log != null) {
+              log.logError("Warning: pip install returned exit code " + exitCode);
+          }
+      } catch (Exception e) {
+          if (log != null) log.logError("Failed to install Python libraries", e);
+      }
+  }
 
   /**
    * Constructs an outgoing row in the case where more than one variable is being extracted from

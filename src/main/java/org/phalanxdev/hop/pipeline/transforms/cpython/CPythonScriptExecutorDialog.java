@@ -25,6 +25,7 @@ package org.phalanxdev.hop.pipeline.transforms.cpython;
 import org.apache.hop.core.Const;
 import org.apache.hop.core.Props;
 import org.apache.hop.core.exception.HopException;
+import org.apache.hop.core.logging.LogChannel;
 import org.apache.hop.core.row.IRowMeta;
 import org.apache.hop.core.row.IValueMeta;
 import org.apache.hop.core.row.RowMeta;
@@ -42,6 +43,7 @@ import org.apache.hop.ui.core.dialog.ShowMessageDialog;
 import org.apache.hop.ui.core.gui.GuiResource;
 import org.apache.hop.ui.core.widget.ColumnInfo;
 import org.apache.hop.ui.core.widget.ComboVar;
+import org.apache.hop.ui.core.widget.MetaSelectionLine;
 import org.apache.hop.ui.core.widget.ScriptStyledTextComp;
 import org.apache.hop.ui.core.widget.StyledTextComp;
 import org.apache.hop.ui.core.widget.TableView;
@@ -79,6 +81,7 @@ import org.eclipse.swt.widgets.Text;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.phalanxdev.hop.metadata.CPythonConfig;
 import org.phalanxdev.hop.pipeline.transforms.cpython.CPythonScriptExecutorMeta.ProcessingMode;
 import org.phalanxdev.python.PythonSession;
 
@@ -108,8 +111,9 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
   private TextVar wtvRowsToProcessSize, wtvReservoirSamplingSize, wtvRandomSeed;
   private Button wbReservoirSampling;
   //options group
-  private Label wlIncludeInputAsOutput, wlContinueOnUnsetVars, wlPythonCommand, wlPyPathEntries, wlPyServerID;
-  private Button wbIncludeInputAsOutput, wbContinueOnUnsetVars;
+  private MetaSelectionLine<CPythonConfig> wConfigSelection;
+  private Label wlIncludeInputAsOutput, wlContinueOnUnsetVars, wlPythonCommand, wlPyPathEntries, wlPyServerID, wlUseArrow;
+  private Button wbIncludeInputAsOutput, wbContinueOnUnsetVars, wbUseArrow;
   private TextVar wtvPythonCommand, wtvPyPathEntries, wtvPyServerID;
   //table
   private TableView wtvInputFrames;
@@ -786,6 +790,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 
     addIncludeInputInOutputControllers();
     addPythonOptions();
+    addUseArrow();
   }
 
   private void addIncludeInputInOutputControllers() {
@@ -819,13 +824,36 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wbIncludeInputAsOutput
         .setToolTipText( BaseMessages.getString( PKG, "CPythonScriptExecutor.InputFieldAsOutput.TipText" ) );
   }
-
+  
   private void addPythonOptions() {
+	  wConfigSelection = new MetaSelectionLine<CPythonConfig>(
+              variables,
+              getMetadataProvider(),
+              CPythonConfig.class,
+              wgOptions,
+              SWT.NONE,
+              BaseMessages.getString(PKG, "CPythonScriptExecutor.ConfigSelection.Label"),
+              BaseMessages.getString(PKG, "CPythonScriptExecutor.ConfigSelection.TipText")
+      );
+		PropsUi.setLook(wConfigSelection);
+		FormData fdata = getFirstLabelFormData();
+		fdata.right = new FormAttachment( 100, -margin );
+		wConfigSelection.setLayoutData(fdata);
+		
+      try {
+          wConfigSelection.fillItems();
+      } catch (Exception e) {
+          LogChannel.UI.logError("Error loading python configurations", e);
+      }
+      wConfigSelection.addModifyListener(lsMod);
+      
+      lastControl = wConfigSelection;
+	  
     wlPythonCommand = new Label( wgOptions, SWT.RIGHT );
     wlPythonCommand.setText( BaseMessages.getString( PKG, "CPythonScriptExecutor.PythonCommand.Label" ) );
     wlPythonCommand.setToolTipText( BaseMessages.getString( PKG, "CPythonScriptExecutor.PythonCommand.TipText" ) );
     PropsUi.setLook( wlPythonCommand );
-    wlPythonCommand.setLayoutData( getFirstLabelFormData() );
+    wlPythonCommand.setLayoutData(getFirstLabelFormData());
 
     wtvPythonCommand = new TextVar( variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     PropsUi.setLook( wtvPythonCommand );
@@ -860,6 +888,22 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wtvPyServerID.setLayoutData( fd );
     lastControl = wtvPyServerID;
   }
+  
+  protected void addUseArrow() {
+	  wlUseArrow = new Label( wgOptions, SWT.RIGHT );
+	    wlUseArrow.setText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.UseArrow.Label" ) );
+	    PropsUi.setLook( wlUseArrow );
+	    wlUseArrow.setLayoutData( getFirstLabelFormData() );
+
+	    wbUseArrow = new Button( wgOptions, SWT.CHECK );
+	    PropsUi.setLook( wbUseArrow );
+	    FormData fd = getFirstPromptFormData( wlUseArrow );
+	    fd.right = null;
+	    wbUseArrow.setLayoutData( fd );
+	    
+	    wbUseArrow.setToolTipText( BaseMessages.getString( PKG, "CPythonScriptExecutorDialog.UseArrow.TipText" ) );
+	    lastControl = wbUseArrow;
+  }
 
   protected void getData( CPythonScriptExecutorMeta meta ) {
     //wcvRowsToProcess.setText( meta.getRowsToProcess() );
@@ -891,7 +935,9 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     wbLoadScriptFile.setSelection( meta.isLoadScriptAtRuntime() );
     setItemText( wtvScriptLocation, meta.getLoadScriptFile() );
     wbIncludeRowIndex.setSelection( meta.isIncludeRowIndex() );
-
+    wbUseArrow.setSelection(meta.isUseArrow());
+    wConfigSelection.select(meta.getConfigSelectionIndex());
+    
     setInputToFramesTableFields( meta );
     setOutputFieldsTableFields( meta );
 
@@ -999,6 +1045,9 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
     meta.setLoadScriptAtRuntime( wbLoadScriptFile.getSelection() );
     meta.setLoadScriptFile( wtvScriptLocation.getText() );
     meta.setIncludeRowIndex( wbIncludeRowIndex.getSelection() );
+    meta.setUseArrow(wbUseArrow.getSelection());
+    meta.setConfigSelectionIndex(wConfigSelection.getSelectionIndex());
+    meta.setConfigName(wConfigSelection.getText());
 
     // incoming stream/frame name data from table
     int numNonEmpty = wtvInputFrames.nrNonEmpty();

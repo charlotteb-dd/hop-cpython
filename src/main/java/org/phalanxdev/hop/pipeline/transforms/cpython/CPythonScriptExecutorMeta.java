@@ -218,6 +218,28 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
   @HopMetadataProperty
   protected boolean useArrow = true;
 
+  @HopMetadataProperty
+  protected String configName;
+  public String getConfigName() {
+	return configName;
+}
+
+  public void setConfigName(String configName) {
+	this.configName = configName;
+  }
+  
+ private int configSelectionIndex;
+ 
+  public int getConfigSelectionIndex() {
+	return configSelectionIndex;
+  }
+
+  public void setConfigSelectionIndex(int configSelectionIndex) {
+	this.configSelectionIndex = configSelectionIndex;
+  }
+
+ 
+  
   /**
    * Outgoing fields
    */
@@ -716,6 +738,8 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
     pyVarsToGet = new ArrayList<>();
     script = BaseMessages
         .getString(PKG, "CPythonScriptExecutorMeta.InitialScriptText"); //$NON-NLS-1$
+    configName = "";
+    configSelectionIndex = -1;
   }
 
   protected String varListToString() {

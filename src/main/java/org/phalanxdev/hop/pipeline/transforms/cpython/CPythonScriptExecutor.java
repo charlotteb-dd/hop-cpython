@@ -31,6 +31,7 @@ import org.apache.hop.core.exception.HopException;
 import org.apache.hop.core.row.IRowMeta;
 import org.apache.hop.core.row.IValueMeta;
 import org.apache.hop.core.row.RowMeta;
+import org.apache.hop.core.util.Utils;
 import org.apache.hop.i18n.BaseMessages;
 import org.apache.hop.pipeline.Pipeline;
 import org.apache.hop.pipeline.PipelineMeta;
@@ -38,6 +39,7 @@ import org.apache.hop.pipeline.transform.BaseTransform;
 import org.apache.hop.pipeline.transform.ITransform;
 import org.apache.hop.pipeline.transform.TransformMeta;
 import org.apache.hop.pipeline.transform.stream.IStream;
+import org.phalanxdev.hop.metadata.CPythonConfig;
 import org.phalanxdev.hop.pipeline.transforms.cpython.CPythonScriptExecutorMeta.ProcessingMode;
 import org.phalanxdev.hop.pipeline.transforms.reservoirsampling.ReservoirSamplingData;
 import org.phalanxdev.python.PythonSession;
@@ -76,6 +78,44 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
     this.data = data;
   }
 
+  private synchronized void installTransformLibraries(String pythonCommand, java.util.List<String> libraries) {
+      if (libraries == null || libraries.isEmpty()) {
+          return;
+      }
+      try {
+          getLogChannel().logBasic("Checking/Installing required libraries: " + String.join(", ", libraries));
+          
+          java.util.List<String> pipCommand = new java.util.ArrayList<>();
+          pipCommand.add(pythonCommand);
+          pipCommand.add("-m");
+          pipCommand.add("pip");
+          pipCommand.add("install");
+          pipCommand.addAll(libraries);
+
+          ProcessBuilder pipPb = new ProcessBuilder(pipCommand);
+          pipPb.redirectErrorStream(true);
+          Process pipProcess = pipPb.start();
+
+          // Read output to prevent freezing
+          java.io.BufferedReader reader = new java.io.BufferedReader(
+              new java.io.InputStreamReader(pipProcess.getInputStream(), java.nio.charset.StandardCharsets.UTF_8)
+          );
+          String line;
+          while ((line = reader.readLine()) != null) {
+              if (getLogChannel().isDebug()) { 
+                  getLogChannel().logDebug("[Pip Install] " + line);
+              }
+          }
+
+          int exitCode = pipProcess.waitFor();
+          if (exitCode != 0) {
+              getLogChannel().logError("Warning: pip install returned exit code " + exitCode);
+          }
+      } catch (Exception e) {
+          getLogChannel().logError("Failed to install Python libraries", e);
+      }
+  }
+  
   public boolean init() {
     if ( super.init() ) {
       try {
@@ -114,6 +154,17 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
         // check python availability
         CPythonScriptExecutorData
             .initPython( meta.getPythonCommand(), meta.getServerID(), meta.getPyPathEntries(), this, getLogChannel() );
+        String resolvedPython = resolve(meta.getPythonCommand());
+        if (Utils.isEmpty(resolvedPython)) {
+        	resolvedPython = "python";
+        }
+        String resolvedConfigName = resolve(meta.getConfigName());
+        CPythonConfig config = getMetadataProvider().getSerializer(CPythonConfig.class).load(resolvedConfigName);
+        
+        if (config != null && config.getLibs() != null) {
+        	List<String> requiredLibs = Arrays.asList(config.getLibs().split("\\s"));
+        	installTransformLibraries(resolvedPython, requiredLibs);
+        }
       } catch ( HopException ex ) {
         logError( ex.getMessage(), ex ); //$NON-NLS-1$
 
