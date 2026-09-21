@@ -174,7 +174,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 				}
 				
 				if (!Utils.isEmpty(meta.getLibraries())) {
-					List<String> requiredLibs = Arrays.asList(meta.getLibraries().split("\\s+"));
+					List<String> requiredLibs = Arrays.asList(meta.getLibraries().trim().split("\\s+"));
 					installTransformLibraries(resolvedPython, requiredLibs);
 				}
 			} catch (HopException ex) {
