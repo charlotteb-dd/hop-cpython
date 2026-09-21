@@ -102,6 +102,7 @@ public class ServerUtils {
   protected static final String FIELDS_KEY = "fields";
   protected static final String FIELD_NAME_KEY = "name";
   protected static final String FIELD_TYPE_KEY = "type";
+  protected static final String FIELD_TYPE_INTEGER = "integer";
   protected static final String FIELD_TYPE_NUMBER = "number";
   protected static final String FIELD_TYPE_DATE = "date";
   protected static final String FIELD_TYPE_STRING = "string";
@@ -155,13 +156,13 @@ public class ServerUtils {
       Map<String, String> fieldMeta = new HashMap<String, String>();
       String fieldName = v.getName();
       if ( needsBase64 ) {
-        byte[] encodedName = Base64.encodeBase64( fieldName.getBytes( Charset.forName( "UTF-8" ) ) );
+        byte[] encodedName = Base64.encodeBase64( fieldName.getBytes( utf8 ) );
         fieldName = new String( encodedName );
       }
       fieldMeta.put( FIELD_NAME_KEY, fieldName );
       switch ( v.getType() ) {
       case IValueMeta.TYPE_INTEGER:
-    	  fieldMeta.put( FIELD_TYPE_KEY, "integer" );
+    	  fieldMeta.put( FIELD_TYPE_KEY, FIELD_TYPE_INTEGER );
     	  break;
       case IValueMeta.TYPE_NUMBER:
         case IValueMeta.TYPE_BIGNUMBER:

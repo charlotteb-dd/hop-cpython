@@ -16,36 +16,36 @@ public class CPythonConfigEditor extends MetadataEditor<CPythonConfig> {
 	public CPythonConfigEditor(HopGui hopGui, MetadataManager<CPythonConfig> manager, CPythonConfig metadata) {
 		super(hopGui, manager, metadata);
 	}
-	
+
 	private GuiCompositeWidgets guiCompositeWidgets;
 	private Composite wAutoFields;
 
 	@Override
 	public void createControl(Composite parent) {
-int margin = PropsUi.getMargin();
-		
+		int margin = PropsUi.getMargin();
+
 		FormLayout formLayout = new FormLayout();
-        formLayout.marginWidth = margin;
-        formLayout.marginHeight = margin;
-        parent.setLayout(formLayout);
-        
-        wAutoFields = new Composite(parent, SWT.NONE);
-        PropsUi.setLook(wAutoFields);
-        wAutoFields.setLayout(new FormLayout());
-        
-        FormData fdAuto = new FormData();
-        fdAuto.left = new FormAttachment(0, 0);
-        fdAuto.right = new FormAttachment(100, 0);
-        fdAuto.top = new FormAttachment(0, 0);
-        wAutoFields.setLayoutData(fdAuto);
-		
+		formLayout.marginWidth = margin;
+		formLayout.marginHeight = margin;
+		parent.setLayout(formLayout);
+
+		wAutoFields = new Composite(parent, SWT.NONE);
+		PropsUi.setLook(wAutoFields);
+		wAutoFields.setLayout(new FormLayout());
+
+		FormData fdAuto = new FormData();
+		fdAuto.left = new FormAttachment(0, 0);
+		fdAuto.right = new FormAttachment(100, 0);
+		fdAuto.top = new FormAttachment(0, 0);
+		wAutoFields.setLayoutData(fdAuto);
+
 		guiCompositeWidgets = new GuiCompositeWidgets(getVariables());
-        guiCompositeWidgets.createCompositeWidgets(getMetadata(), null, wAutoFields, CPythonConfig.GUI_PLUGIN_ID, null);
-        
-        guiCompositeWidgets.setWidgetsContents(getMetadata(), wAutoFields, CPythonConfig.GUI_PLUGIN_ID);
-        
-        wAutoFields.layout(true, true);
-        parent.layout(true, true);
+		guiCompositeWidgets.createCompositeWidgets(getMetadata(), null, wAutoFields, CPythonConfig.GUI_PLUGIN_ID, null);
+
+		guiCompositeWidgets.setWidgetsContents(getMetadata(), wAutoFields, CPythonConfig.GUI_PLUGIN_ID);
+
+		wAutoFields.layout(true, true);
+		parent.layout(true, true);
 	}
 
 	@Override
@@ -57,5 +57,5 @@ int margin = PropsUi.getMargin();
 	public void getWidgetsContent(CPythonConfig meta) {
 		guiCompositeWidgets.getWidgetsContents(meta, CPythonConfig.GUI_PLUGIN_ID);
 	}
-	
+
 }

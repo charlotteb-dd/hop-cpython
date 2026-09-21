@@ -25,7 +25,6 @@ package org.phalanxdev.python;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.*;
-import org.apache.arrow.vector.complex.ListVector;
 import org.apache.arrow.vector.ipc.ArrowStreamReader;
 import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 import org.apache.arrow.vector.types.pojo.ArrowType;
@@ -60,250 +59,243 @@ import java.util.List;
  */
 public class ArrowUtils {
 
-  // Shared buffer allocator
-  private static final BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
+	// Shared buffer allocator
+	private static final BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
-  /**
-   * Convert Hop rows to Arrow format
-   */
-  public static byte[] rowsToArrow(IRowMeta meta, List<Object[]> rows) throws HopException {
-    // Create Arrow schema from Hop metadata
-    List<Field> fields = new ArrayList<>();
-    for (int i = 0; i < meta.size(); i++) {
-      IValueMeta valueMeta = meta.getValueMeta(i);
-      Field field = createArrowField(valueMeta);
-      fields.add(field);
-    }
-    Schema schema = new Schema(fields);
+	/**
+	 * Convert Hop rows to Arrow format
+	 */
+	public static byte[] rowsToArrow(IRowMeta meta, List<Object[]> rows) throws HopException {
+		// Create Arrow schema from Hop metadata
+		List<Field> fields = new ArrayList<>();
+		for (int i = 0; i < meta.size(); i++) {
+			IValueMeta valueMeta = meta.getValueMeta(i);
+			Field field = createArrowField(valueMeta);
+			fields.add(field);
+		}
+		Schema schema = new Schema(fields);
 
-    // Create vectors and populate with data
-    try (VectorSchemaRoot root = VectorSchemaRoot.create(schema, allocator)) {
-      root.allocateNew();
-      
-      // Populate data
-      for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
-        Object[] row = rows.get(rowIdx);
-        for (int colIdx = 0; colIdx < meta.size(); colIdx++) {
-          IValueMeta valueMeta = meta.getValueMeta(colIdx);
-          FieldVector vector = root.getVector(colIdx);
-          setVectorValue(vector, rowIdx, row[colIdx], valueMeta);
-        }
-      }
-      root.setRowCount(rows.size());
+		// Create vectors and populate with data
+		try (VectorSchemaRoot root = VectorSchemaRoot.create(schema, allocator)) {
+			root.allocateNew();
 
-      // Write to Arrow IPC stream format
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      try (WritableByteChannel channel = Channels.newChannel(out);
-           ArrowStreamWriter writer = new ArrowStreamWriter(root, null, channel)) {
-        writer.start();
-        writer.writeBatch();
-        writer.end();
-      }
-      
-      return out.toByteArray();
-    } catch (IOException e) {
-      throw new HopException("Error converting rows to Arrow format", e);
-    }
-  }
+			// Populate data
+			for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
+				Object[] row = rows.get(rowIdx);
+				for (int colIdx = 0; colIdx < meta.size(); colIdx++) {
+					IValueMeta valueMeta = meta.getValueMeta(colIdx);
+					FieldVector vector = root.getVector(colIdx);
+					setVectorValue(vector, rowIdx, row[colIdx], valueMeta);
+				}
+			}
+			root.setRowCount(rows.size());
 
-  /**
-   * Convert Arrow data to Hop rows
-   */
-  public static PythonSession.RowMetaAndRows arrowToRows(byte[] arrowData) throws HopException {
-    PythonSession.RowMetaAndRows result = new PythonSession.RowMetaAndRows();
-    List<Object[]> rowsList = new ArrayList<>();
-    
-    try (ByteArrayInputStream in = new ByteArrayInputStream(arrowData);
-         ReadableByteChannel channel = Channels.newChannel(in);
-         ArrowStreamReader reader = new ArrowStreamReader(channel, allocator)) {
-      
-      // Read schema and create Hop metadata
-      VectorSchemaRoot root = reader.getVectorSchemaRoot();
-      Schema schema = root.getSchema();
-      result.rowMeta = createHopRowMeta(schema);
-      
-      // Read all batches
-      while (reader.loadNextBatch()) {
-        int rowCount = root.getRowCount();
-        for (int i = 0; i < rowCount; i++) {
-          Object[] row = new Object[schema.getFields().size()];
-          for (int j = 0; j < schema.getFields().size(); j++) {
-            FieldVector vector = root.getVector(j);
-            row[j] = getVectorValue(vector, i, result.rowMeta.getValueMeta(j));
-          }
-          rowsList.add(row);
-        }
-      }
-      
-      // Convert list to array
-      result.rows = rowsList.toArray(new Object[rowsList.size()][]);
-      
-      return result;
-    } catch (Exception e) {
-      throw new HopException("Error converting Arrow data to rows", e);
-    }
-  }
+			// Write to Arrow IPC stream format
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			try (WritableByteChannel channel = Channels.newChannel(out);
+					ArrowStreamWriter writer = new ArrowStreamWriter(root, null, channel)) {
+				writer.start();
+				writer.writeBatch();
+				writer.end();
+			}
 
-  /**
-   * Create Arrow field from Hop value metadata
-   */
-  private static Field createArrowField(IValueMeta valueMeta) {
-    String name = valueMeta.getName();
-    ArrowType arrowType;
-    
-    switch (valueMeta.getType()) {
-      case IValueMeta.TYPE_STRING:
-        arrowType = new ArrowType.Utf8();
-        break;
-      case IValueMeta.TYPE_INTEGER:
-        arrowType = new ArrowType.Int(64, true); // 64-bit signed integer
-        break;
-      case IValueMeta.TYPE_NUMBER:
-        arrowType = new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE);
-        break;
-      case IValueMeta.TYPE_BIGNUMBER:
-        arrowType = new ArrowType.Decimal(38, 10, 128); // 128-bit decimal
-        break;
-      case IValueMeta.TYPE_DATE:
-        arrowType = new ArrowType.Date(DateUnit.MILLISECOND);
-        break;
-      case IValueMeta.TYPE_TIMESTAMP:
-        arrowType = new ArrowType.Timestamp(TimeUnit.MILLISECOND, null);
-        break;
-      case IValueMeta.TYPE_BOOLEAN:
-        arrowType = new ArrowType.Bool();
-        break;
-      case IValueMeta.TYPE_BINARY:
-        arrowType = new ArrowType.Binary();
-        break;
-      default:
-        arrowType = new ArrowType.Utf8(); // Default to string
-    }
-    
-    FieldType fieldType = new FieldType(true, arrowType, null);
-    return new Field(name, fieldType, null);
-  }
+			return out.toByteArray();
+		} catch (IOException e) {
+			throw new HopException("Error converting rows to Arrow format", e);
+		}
+	}
 
-  /**
-   * Create Hop row metadata from Arrow schema
-   */
-  private static IRowMeta createHopRowMeta(Schema schema) throws HopException {
-    IRowMeta rowMeta = new RowMeta();
-    
-    for (Field field : schema.getFields()) {
-      String name = field.getName();
-      int hopType = IValueMeta.TYPE_STRING; // Default
-      
-      ArrowType arrowType = field.getType();
-      if (arrowType instanceof ArrowType.Utf8) {
-        hopType = IValueMeta.TYPE_STRING;
-      } else if (arrowType instanceof ArrowType.Int) {
-        hopType = IValueMeta.TYPE_INTEGER;
-      } else if (arrowType instanceof ArrowType.FloatingPoint) {
-        hopType = IValueMeta.TYPE_NUMBER;
-      } else if (arrowType instanceof ArrowType.Decimal) {
-        hopType = IValueMeta.TYPE_BIGNUMBER;
-      } else if (arrowType instanceof ArrowType.Date) {
-        hopType = IValueMeta.TYPE_DATE;
-      } else if (arrowType instanceof ArrowType.Timestamp) {
-        hopType = IValueMeta.TYPE_TIMESTAMP;
-      } else if (arrowType instanceof ArrowType.Bool) {
-        hopType = IValueMeta.TYPE_BOOLEAN;
-      } else if (arrowType instanceof ArrowType.Binary) {
-        hopType = IValueMeta.TYPE_BINARY;
-      }
-      
-      IValueMeta valueMeta = ValueMetaFactory.createValueMeta(name, hopType);
-      rowMeta.addValueMeta(valueMeta);
-    }
-    
-    return rowMeta;
-  }
+	/**
+	 * Convert Arrow data to Hop rows
+	 */
+	public static PythonSession.RowMetaAndRows arrowToRows(byte[] arrowData) throws HopException {
+		PythonSession.RowMetaAndRows result = new PythonSession.RowMetaAndRows();
+		List<Object[]> rowsList = new ArrayList<>();
 
-  /**
-   * Set value in Arrow vector
-   */
-  private static void setVectorValue(FieldVector vector, int index, Object value, IValueMeta valueMeta) 
-      throws HopValueException {
-    if (value == null) {
-      vector.setNull(index);
-      return;
-    }
-    
-    switch (valueMeta.getType()) {
-      case IValueMeta.TYPE_STRING:
-        ((VarCharVector) vector).setSafe(index, new Text(valueMeta.getString(value)));
-        break;
-      case IValueMeta.TYPE_INTEGER:
-        ((BigIntVector) vector).setSafe(index, valueMeta.getInteger(value));
-        break;
-      case IValueMeta.TYPE_NUMBER:
-        ((Float8Vector) vector).setSafe(index, valueMeta.getNumber(value));
-        break;
-      case IValueMeta.TYPE_BIGNUMBER:
-        BigDecimal bd = valueMeta.getBigNumber(value);
-        ((DecimalVector) vector).setSafe(index, bd);
-        break;
-      case IValueMeta.TYPE_DATE:
-      case IValueMeta.TYPE_TIMESTAMP:
-        Date date = valueMeta.getDate(value);
-        if (vector instanceof DateMilliVector) {
-          ((DateMilliVector) vector).setSafe(index, date.getTime());
-        } else if (vector instanceof TimeStampMilliVector) {
-          ((TimeStampMilliVector) vector).setSafe(index, date.getTime());
-        }
-        break;
-      case IValueMeta.TYPE_BOOLEAN:
-        ((BitVector) vector).setSafe(index, valueMeta.getBoolean(value) ? 1 : 0);
-        break;
-      case IValueMeta.TYPE_BINARY:
-        byte[] bytes = valueMeta.getBinary(value);
-        ((VarBinaryVector) vector).setSafe(index, bytes);
-        break;
-      default:
-        ((VarCharVector) vector).setSafe(index, new Text(valueMeta.getString(value)));
-    }
-  }
+		try (ByteArrayInputStream in = new ByteArrayInputStream(arrowData);
+				ReadableByteChannel channel = Channels.newChannel(in);
+				ArrowStreamReader reader = new ArrowStreamReader(channel, allocator)) {
 
-  /**
-   * Get value from Arrow vector
-   */
-  private static Object getVectorValue(FieldVector vector, int index, IValueMeta valueMeta) {
-    if (vector.isNull(index)) {
-      return null;
-    }
-    
-    switch (valueMeta.getType()) {
-      case IValueMeta.TYPE_STRING:
-        return ((VarCharVector) vector).getObject(index).toString();
-      case IValueMeta.TYPE_INTEGER:
-        return ((BigIntVector) vector).get(index);
-      case IValueMeta.TYPE_NUMBER:
-        return ((Float8Vector) vector).get(index);
-      case IValueMeta.TYPE_BIGNUMBER:
-        return ((DecimalVector) vector).getObject(index);
-      case IValueMeta.TYPE_DATE:
-        if (vector instanceof DateMilliVector) {
-          return new Date(((DateMilliVector) vector).get(index));
-        } else if (vector instanceof TimeStampMilliVector) {
-          return new Date(((TimeStampMilliVector) vector).get(index));
-        }
-        return null;
-      case IValueMeta.TYPE_TIMESTAMP:
-        return new Date(((TimeStampMilliVector) vector).get(index));
-      case IValueMeta.TYPE_BOOLEAN:
-        return ((BitVector) vector).get(index) == 1;
-      case IValueMeta.TYPE_BINARY:
-        return ((VarBinaryVector) vector).get(index);
-      default:
-        return vector.getObject(index).toString();
-    }
-  }
+			// Read schema and create Hop metadata
+			VectorSchemaRoot root = reader.getVectorSchemaRoot();
+			Schema schema = root.getSchema();
+			result.rowMeta = createHopRowMeta(schema);
 
-  /**
-   * Clean up Arrow resources
-   */
-  public static void cleanup() {
-    allocator.close();
-  }
+			// Read all batches
+			while (reader.loadNextBatch()) {
+				int rowCount = root.getRowCount();
+				for (int i = 0; i < rowCount; i++) {
+					Object[] row = new Object[schema.getFields().size()];
+					for (int j = 0; j < schema.getFields().size(); j++) {
+						FieldVector vector = root.getVector(j);
+						row[j] = getVectorValue(vector, i, result.rowMeta.getValueMeta(j));
+					}
+					rowsList.add(row);
+				}
+			}
+
+			// Convert list to array
+			result.rows = rowsList.toArray(new Object[rowsList.size()][]);
+
+			return result;
+		} catch (Exception e) {
+			throw new HopException("Error converting Arrow data to rows", e);
+		}
+	}
+
+	/**
+	 * Create Arrow field from Hop value metadata
+	 */
+	private static Field createArrowField(IValueMeta valueMeta) {
+		String name = valueMeta.getName();
+		ArrowType arrowType;
+
+		switch (valueMeta.getType()) {
+		case IValueMeta.TYPE_STRING:
+			arrowType = new ArrowType.Utf8();
+			break;
+		case IValueMeta.TYPE_INTEGER:
+			arrowType = new ArrowType.Int(64, true); // 64-bit signed integer
+			break;
+		case IValueMeta.TYPE_NUMBER:
+			arrowType = new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE);
+			break;
+		case IValueMeta.TYPE_BIGNUMBER:
+			arrowType = new ArrowType.Decimal(38, 10, 128); // 128-bit decimal
+			break;
+		case IValueMeta.TYPE_DATE:
+			arrowType = new ArrowType.Date(DateUnit.MILLISECOND);
+			break;
+		case IValueMeta.TYPE_TIMESTAMP:
+			arrowType = new ArrowType.Timestamp(TimeUnit.MILLISECOND, null);
+			break;
+		case IValueMeta.TYPE_BOOLEAN:
+			arrowType = new ArrowType.Bool();
+			break;
+		case IValueMeta.TYPE_BINARY:
+			arrowType = new ArrowType.Binary();
+			break;
+		default:
+			arrowType = new ArrowType.Utf8(); // Default to string
+		}
+
+		FieldType fieldType = new FieldType(true, arrowType, null);
+		return new Field(name, fieldType, null);
+	}
+
+	/**
+	 * Create Hop row metadata from Arrow schema
+	 */
+	private static IRowMeta createHopRowMeta(Schema schema) throws HopException {
+		IRowMeta rowMeta = new RowMeta();
+
+		for (Field field : schema.getFields()) {
+			String name = field.getName();
+
+			ArrowType arrowType = field.getType();
+			int hopType = switch (arrowType) {
+			case ArrowType.Utf8 t -> IValueMeta.TYPE_STRING;
+			case ArrowType.Int t -> IValueMeta.TYPE_INTEGER;
+			case ArrowType.FloatingPoint t -> IValueMeta.TYPE_NUMBER;
+			case ArrowType.Decimal t -> IValueMeta.TYPE_BIGNUMBER;
+			case ArrowType.Date t -> IValueMeta.TYPE_DATE;
+			case ArrowType.Timestamp t -> IValueMeta.TYPE_TIMESTAMP;
+			case ArrowType.Bool t -> IValueMeta.TYPE_BOOLEAN;
+			case ArrowType.Binary t -> IValueMeta.TYPE_BINARY;
+			default -> IValueMeta.TYPE_STRING;
+			};
+
+			IValueMeta valueMeta = ValueMetaFactory.createValueMeta(name, hopType);
+			rowMeta.addValueMeta(valueMeta);
+		}
+
+		return rowMeta;
+	}
+
+	/**
+	 * Set value in Arrow vector
+	 */
+	private static void setVectorValue(FieldVector vector, int index, Object value, IValueMeta valueMeta)
+			throws HopValueException {
+		if (value == null) {
+			vector.setNull(index);
+			return;
+		}
+
+		switch (valueMeta.getType()) {
+		case IValueMeta.TYPE_STRING:
+			((VarCharVector) vector).setSafe(index, new Text(valueMeta.getString(value)));
+			break;
+		case IValueMeta.TYPE_INTEGER:
+			((BigIntVector) vector).setSafe(index, valueMeta.getInteger(value));
+			break;
+		case IValueMeta.TYPE_NUMBER:
+			((Float8Vector) vector).setSafe(index, valueMeta.getNumber(value));
+			break;
+		case IValueMeta.TYPE_BIGNUMBER:
+			BigDecimal bd = valueMeta.getBigNumber(value);
+			((DecimalVector) vector).setSafe(index, bd);
+			break;
+		case IValueMeta.TYPE_DATE:
+		case IValueMeta.TYPE_TIMESTAMP:
+			Date date = valueMeta.getDate(value);
+			if (vector instanceof DateMilliVector) {
+				((DateMilliVector) vector).setSafe(index, date.getTime());
+			} else if (vector instanceof TimeStampMilliVector) {
+				((TimeStampMilliVector) vector).setSafe(index, date.getTime());
+			}
+			break;
+		case IValueMeta.TYPE_BOOLEAN:
+			((BitVector) vector).setSafe(index, valueMeta.getBoolean(value) ? 1 : 0);
+			break;
+		case IValueMeta.TYPE_BINARY:
+			byte[] bytes = valueMeta.getBinary(value);
+			((VarBinaryVector) vector).setSafe(index, bytes);
+			break;
+		default:
+			((VarCharVector) vector).setSafe(index, new Text(valueMeta.getString(value)));
+		}
+	}
+
+	/**
+	 * Get value from Arrow vector
+	 */
+	private static Object getVectorValue(FieldVector vector, int index, IValueMeta valueMeta) {
+		if (vector.isNull(index)) {
+			return null;
+		}
+
+		switch (valueMeta.getType()) {
+		case IValueMeta.TYPE_STRING:
+			return ((VarCharVector) vector).getObject(index).toString();
+		case IValueMeta.TYPE_INTEGER:
+			return ((BigIntVector) vector).get(index);
+		case IValueMeta.TYPE_NUMBER:
+			return ((Float8Vector) vector).get(index);
+		case IValueMeta.TYPE_BIGNUMBER:
+			return ((DecimalVector) vector).getObject(index);
+		case IValueMeta.TYPE_DATE:
+			if (vector instanceof DateMilliVector) {
+				return new Date(((DateMilliVector) vector).get(index));
+			} else if (vector instanceof TimeStampMilliVector) {
+				return new Date(((TimeStampMilliVector) vector).get(index));
+			}
+			return null;
+		case IValueMeta.TYPE_TIMESTAMP:
+			return new Date(((TimeStampMilliVector) vector).get(index));
+		case IValueMeta.TYPE_BOOLEAN:
+			return ((BitVector) vector).get(index) == 1;
+		case IValueMeta.TYPE_BINARY:
+			return ((VarBinaryVector) vector).get(index);
+		default:
+			return vector.getObject(index).toString();
+		}
+	}
+
+	/**
+	 * Clean up Arrow resources
+	 */
+	public static void cleanup() {
+		allocator.close();
+	}
 }
