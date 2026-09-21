@@ -22,6 +22,7 @@
 
 package org.phalanxdev.hop.pipeline.transforms.cpython;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -101,7 +102,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 
 			// Read output to prevent freezing
 			java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(
-					pipProcess.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
+					pipProcess.getInputStream(), StandardCharsets.UTF_8));
 			String line;
 			while ((line = reader.readLine()) != null) {
 				if (getLogChannel().isDebug()) {
@@ -153,19 +154,27 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 					data.includeInputAsOutput = meta.isIncludeInputAsOutput();
 				}
 
-				// check python availability
-				CPythonScriptExecutorData.initPython(meta.getPythonCommand(), meta.getServerID(),
-						meta.getPyPathEntries(), this, getLogChannel());
-				String resolvedPython = resolve(meta.getPythonCommand());
-				if (Utils.isEmpty(resolvedPython)) {
-					resolvedPython = "python";
-				}
 				String resolvedConfigName = resolve(meta.getConfigName());
 				CPythonConfig config = getMetadataProvider().getSerializer(CPythonConfig.class)
 						.load(resolvedConfigName);
-
-				if (config != null && config.getLibs() != null) {
-					List<String> requiredLibs = Arrays.asList(config.getLibs().split("\\s"));
+				
+				if (config != null) {
+					data.pythonCommand = config.getPythonCommand();
+					data.pyPathEntries = config.getPyPathEntries();
+					data.serverID = config.getServerID();
+				}
+				
+				// check python availability
+				CPythonScriptExecutorData.initPython(data.pythonCommand, data.serverID, data.pyPathEntries, this,
+						getLogChannel());
+				String resolvedPython = resolve(data.pythonCommand);
+				
+				if (Utils.isEmpty(resolvedPython)) {
+					resolvedPython = "python";
+				}
+				
+				if (!Utils.isEmpty(meta.getLibraries())) {
+					List<String> requiredLibs = Arrays.asList(meta.getLibraries().split("\\s+"));
 					installTransformLibraries(resolvedPython, requiredLibs);
 				}
 			} catch (HopException ex) {
@@ -321,7 +330,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 
 	protected void processBatch(boolean allDone) throws HopException {
 		PythonSession session = null;
-
+	
 		try {
 			if (!noInputRowSets && !meta.isDoingReservoirSampling() && data.incomingRowSets.size() >= 1) {
 				boolean framesAdded = false;
@@ -339,8 +348,8 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 
 						// session = CPythonScriptExecutorData.acquirePySession(this, getLogChannel(),
 						// this);
-						session = CPythonScriptExecutorData.acquirePySession(this, meta.getPythonCommand(),
-								meta.getServerID(), getLogChannel(), this);
+						session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand,
+								data.serverID, getLogChannel(), this);
 						// Configure Arrow usage based on meta configuration
 						session.setUseArrow(meta.isUseArrow());
 						rowsToPyDataFrame(session, data.incomingRowSets.get(i).getRowMeta(), frameBuffer, frameName);
@@ -358,7 +367,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 					}
 				}
 			} else if (!noInputRowSets && allDone) {
-				session = CPythonScriptExecutorData.acquirePySession(this, meta.getPythonCommand(), meta.getServerID(),
+				session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand, data.serverID,
 						getLogChannel(), this);
 				// Configure Arrow usage based on meta configuration
 				session.setUseArrow(meta.isUseArrow());
@@ -380,11 +389,12 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 
 						if (data.batchSize == 1) { // we need to process row by row the sample. we will only have one
 													// sample
+							
 							List<Object[]> sampleSpliced = new ArrayList<Object[]>();
 							for (int k = 0; k < sample.size(); k++) {
 								Object[] objects = sample.get(k);
-								session = CPythonScriptExecutorData.acquirePySession(this, meta.getPythonCommand(),
-										meta.getServerID(), getLogChannel(), this);
+								session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand,
+										data.serverID, getLogChannel(), this);
 								// Configure Arrow usage based on meta configuration
 								session.setUseArrow(meta.isUseArrow());
 								sampleSpliced.clear();
@@ -396,8 +406,8 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 								executeScriptAndProcessResult(session, meta.isContinueOnUnsetVars());
 
 								if (session != null) {
-									CPythonScriptExecutorData.releasePySession(this, meta.getPythonCommand(),
-											meta.getServerID(), this);
+									CPythonScriptExecutorData.releasePySession(this, data.pythonCommand,
+											data.serverID, this);
 								}
 							}
 
@@ -412,7 +422,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 				}
 			} else if (noInputRowSets) {
 				// just get results from script as we have no inputs to us
-				session = CPythonScriptExecutorData.acquirePySession(this, meta.getPythonCommand(), meta.getServerID(),
+				session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand, data.serverID,
 						getLogChannel(), this);
 				// Configure Arrow usage based on meta configuration
 				session.setUseArrow(meta.isUseArrow());
@@ -420,7 +430,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 			}
 		} finally {
 			if (session != null) {
-				CPythonScriptExecutorData.releasePySession(this, meta.getPythonCommand(), meta.getServerID(), this);
+				CPythonScriptExecutorData.releasePySession(this, data.pythonCommand, data.serverID, this);
 			}
 		}
 	}

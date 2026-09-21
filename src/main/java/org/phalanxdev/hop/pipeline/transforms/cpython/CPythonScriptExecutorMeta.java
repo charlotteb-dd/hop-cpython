@@ -33,6 +33,7 @@ import org.apache.hop.core.row.IValueMeta;
 import org.apache.hop.core.row.RowMeta;
 import org.apache.hop.core.row.value.ValueMetaFactory;
 import org.apache.hop.core.variables.IVariables;
+import org.apache.hop.core.variables.Variable;
 import org.apache.hop.i18n.BaseMessages;
 import org.apache.hop.metadata.api.HopMetadataProperty;
 import org.apache.hop.metadata.api.IHopMetadataProvider;
@@ -45,6 +46,7 @@ import org.apache.hop.pipeline.transform.stream.IStream;
 import org.apache.hop.pipeline.transform.stream.IStream.StreamType;
 import org.apache.hop.pipeline.transform.stream.Stream;
 import org.apache.hop.pipeline.transform.stream.StreamIcon;
+import org.phalanxdev.hop.metadata.CPythonConfig;
 import org.phalanxdev.python.PythonSession;
 
 import java.util.ArrayList;
@@ -100,30 +102,41 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
 	@HopMetadataProperty
 	protected String script = BaseMessages.getString(PKG, "CPythonScriptExecutorMeta.InitialScriptText");
 
-	/**
-	 * User-supplied path to python executable. If not specified, then we use the
-	 * default python in the path
-	 */
-	@HopMetadataProperty
-	protected String pythonCommand = "";
+//	/**
+//	 * User-supplied path to python executable. If not specified, then we use the
+//	 * default python in the path
+//	 */
+//	@HopMetadataProperty
+//	protected String pythonCommand = "";
+//
+//	/**
+//	 * Optional entries for the PATH, required so that python will execute
+//	 * correctly. Used when user has specified path to python executable. E.g. under
+//	 * windows, Anaconda requires Library/bin to be in the PATH as well as the
+//	 * python executable.
+//	 */
+//	@HopMetadataProperty
+//	protected String pyPathEntries = "";
+//
+//	/**
+//	 * An optional ID for the python server. This plus the path to the executable
+//	 * uniquely identifies a non-default server. Can be used to share a given server
+//	 * instance among several clients, or to ensure that a given client has a
+//	 * dedicated server.
+//	 */
+//	@HopMetadataProperty
+//	protected String serverID = "";
 
-	/**
-	 * Optional entries for the PATH, required so that python will execute
-	 * correctly. Used when user has specified path to python executable. E.g. under
-	 * windows, Anaconda requires Library/bin to be in the PATH as well as the
-	 * python executable.
-	 */
 	@HopMetadataProperty
-	protected String pyPathEntries = "";
+	protected String libraries = "";
+	
+	public String getLibraries() {
+		return libraries;
+	}
 
-	/**
-	 * An optional ID for the python server. This plus the path to the executable
-	 * uniquely identifies a non-default server. Can be used to share a given server
-	 * instance among several clients, or to ensure that a given client has a
-	 * dedicated server.
-	 */
-	@HopMetadataProperty
-	protected String serverID = "";
+	public void setLibraries(String libraries) {
+		this.libraries = libraries;
+	}
 
 	/**
 	 * Whether to load a script at runtime
@@ -242,29 +255,29 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
 	protected List<CPythonOutputField> outputFields;
 //  protected IRowMeta outputsFields;
 
-	public void setPythonCommand(String pythonCommand) {
-		this.pythonCommand = pythonCommand;
-	}
-
-	public String getPythonCommand() {
-		return pythonCommand;
-	}
-
-	public void setPyPathEntries(String pyPathEntries) {
-		this.pyPathEntries = pyPathEntries;
-	}
-
-	public String getPyPathEntries() {
-		return pyPathEntries;
-	}
-
-	public void setServerID(String pyServerID) {
-		this.serverID = pyServerID;
-	}
-
-	public String getServerID() {
-		return serverID;
-	}
+//	public void setPythonCommand(String pythonCommand) {
+//		this.pythonCommand = pythonCommand;
+//	}
+//
+//	public String getPythonCommand() {
+//		return pythonCommand;
+//	}
+//
+//	public void setPyPathEntries(String pyPathEntries) {
+//		this.pyPathEntries = pyPathEntries;
+//	}
+//
+//	public String getPyPathEntries() {
+//		return pyPathEntries;
+//	}
+//
+//	public void setServerID(String pyServerID) {
+//		this.serverID = pyServerID;
+//	}
+//
+//	public String getServerID() {
+//		return serverID;
+//	}
 
 	/**
 	 * Get the output structure
@@ -573,7 +586,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
 		return continueOnUnsetVars;
 	}
 
-	public IRowMeta determineOutputRowMeta(IRowMeta[] info, IVariables space) throws HopException {
+	public IRowMeta determineOutputRowMeta(IRowMeta[] info, IVariables space, IHopMetadataProvider metadataProvider) throws HopException {
 
 		List<IRowMeta> incomingMetas = new ArrayList<>();
 
@@ -583,9 +596,10 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
 				incomingMetas.add(r);
 			}
 		}
-
+		String resolvedConfigName = space.resolve(this.getConfigName());
+		CPythonConfig config = metadataProvider.getSerializer(CPythonConfig.class).load(resolvedConfigName);
 		PythonSession.RowMetaAndRows scriptRM = CPythonScriptExecutorData.determineOutputMetaSingleVariable(this,
-				incomingMetas, this, getLog(), space);
+				incomingMetas, this, config, getLog(), space);
 
 		return scriptRM.rowMeta;
 	}
@@ -646,7 +660,7 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
 
 			// script fields
 			try {
-				addScriptFieldsToOutput(rowMeta, info, transformName, space);
+				addScriptFieldsToOutput(rowMeta, info, transformName, space, metaStore);
 			} catch (HopException ex) {
 				throw new HopTransformException(ex);
 			}
@@ -672,12 +686,12 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
 	 * and the type of the variable will be determined; if it is a pandas frame,
 	 * then the field meta data can be determined.
 	 */
-	private void addScriptFieldsToOutput(IRowMeta rowMeta, IRowMeta[] info, String transformName, IVariables space)
+	private void addScriptFieldsToOutput(IRowMeta rowMeta, IRowMeta[] info, String transformName, IVariables space, IHopMetadataProvider metadataProvider)
 			throws HopException {
 		if (pyVarsToGet.size() == 1) {
 			// could be just a single pandas data frame - see if we can determine
 			// the fields in this frame...
-			IRowMeta scriptRM = determineOutputRowMeta(info, space);
+			IRowMeta scriptRM = determineOutputRowMeta(info, space, metadataProvider);
 
 			for (IValueMeta vm : scriptRM.getValueMetaList()) {
 				vm.setOrigin(transformName);

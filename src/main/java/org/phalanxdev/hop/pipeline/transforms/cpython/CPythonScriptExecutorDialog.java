@@ -107,10 +107,10 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 	private Button wbReservoirSampling;
 	// options group
 	private MetaSelectionLine<CPythonConfig> wConfigSelection;
-	private Label wlIncludeInputAsOutput, wlContinueOnUnsetVars, wlPythonCommand, wlPyPathEntries, wlPyServerID,
+	private Label wlIncludeInputAsOutput, wlContinueOnUnsetVars, wlLibraries, //wlPythonCommand, wlPyPathEntries, wlPyServerID,
 			wlUseArrow;
 	private Button wbIncludeInputAsOutput, wbContinueOnUnsetVars, wbUseArrow;
-	private TextVar wtvPythonCommand, wtvPyPathEntries, wtvPyServerID;
+	private TextVar wLibraries; //wtvPythonCommand, wtvPyPathEntries, wtvPyServerID;
 	// table
 	private TableView wtvInputFrames;
 
@@ -830,45 +830,58 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 		wConfigSelection.addModifyListener(lsMod);
 
 		lastControl = wConfigSelection;
-
-		wlPythonCommand = new Label(wgOptions, SWT.RIGHT);
-		wlPythonCommand.setText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PythonCommand.Label"));
-		wlPythonCommand.setToolTipText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PythonCommand.TipText"));
-		PropsUi.setLook(wlPythonCommand);
-		wlPythonCommand.setLayoutData(getFirstLabelFormData());
-
-		wtvPythonCommand = new TextVar(variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-		PropsUi.setLook(wtvPythonCommand);
-		FormData fd = getFirstPromptFormData(wlPythonCommand);
+		
+		wlLibraries = new Label(wgOptions, SWT.RIGHT);
+		wlLibraries.setText(BaseMessages.getString(PKG, "CPythonScriptExecutor.Libs.Label"));
+		wlLibraries.setToolTipText(BaseMessages.getString(PKG, "CPythonScriptExecutor.TipText.Label"));
+		PropsUi.setLook(wlLibraries);
+		wlLibraries.setLayoutData(getFirstLabelFormData());
+		
+		wLibraries = new TextVar(variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+		PropsUi.setLook(wLibraries);
+		FormData fd = getFirstPromptFormData(wlLibraries);
 		fd.right = new FormAttachment(95, 0);
-		wtvPythonCommand.setLayoutData(fd);
-		lastControl = wtvPythonCommand;
+		wLibraries.setLayoutData(fd);
+		lastControl = wLibraries;
 
-		wlPyPathEntries = new Label(wgOptions, SWT.RIGHT);
-		wlPyPathEntries.setText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PyPathEntries.Label"));
-		wlPyPathEntries.setToolTipText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PyPathEntries.TipText"));
-		PropsUi.setLook(wlPyPathEntries);
-		wlPyPathEntries.setLayoutData(getFirstLabelFormData());
+//		wlPythonCommand = new Label(wgOptions, SWT.RIGHT);
+//		wlPythonCommand.setText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PythonCommand.Label"));
+//		wlPythonCommand.setToolTipText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PythonCommand.TipText"));
+//		PropsUi.setLook(wlPythonCommand);
+//		wlPythonCommand.setLayoutData(getFirstLabelFormData());
+//
+//		wtvPythonCommand = new TextVar(variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+//		PropsUi.setLook(wtvPythonCommand);
+//		FormData fd = getFirstPromptFormData(wlPythonCommand);
+//		fd.right = new FormAttachment(95, 0);
+//		wtvPythonCommand.setLayoutData(fd);
+//		lastControl = wtvPythonCommand;
 
-		wtvPyPathEntries = new TextVar(variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-		PropsUi.setLook(wtvPyPathEntries);
-		fd = getFirstPromptFormData(wlPyPathEntries);
-		fd.right = new FormAttachment(95, 0);
-		wtvPyPathEntries.setLayoutData(fd);
-		lastControl = wtvPyPathEntries;
+//		wlPyPathEntries = new Label(wgOptions, SWT.RIGHT);
+//		wlPyPathEntries.setText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PyPathEntries.Label"));
+//		wlPyPathEntries.setToolTipText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PyPathEntries.TipText"));
+//		PropsUi.setLook(wlPyPathEntries);
+//		wlPyPathEntries.setLayoutData(getFirstLabelFormData());
+//
+//		wtvPyPathEntries = new TextVar(variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+//		PropsUi.setLook(wtvPyPathEntries);
+//		fd = getFirstPromptFormData(wlPyPathEntries);
+//		fd.right = new FormAttachment(95, 0);
+//		wtvPyPathEntries.setLayoutData(fd);
+//		lastControl = wtvPyPathEntries;
 
-		wlPyServerID = new Label(wgOptions, SWT.RIGHT);
-		wlPyServerID.setText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PyServerID.Label"));
-		wlPyServerID.setToolTipText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PyServerID.TipText"));
-		PropsUi.setLook(wlPyServerID);
-		wlPyServerID.setLayoutData(getFirstLabelFormData());
-
-		wtvPyServerID = new TextVar(variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-		PropsUi.setLook(wtvPyServerID);
-		fd = getFirstPromptFormData(wlPyServerID);
-		fd.right = new FormAttachment(95, 0);
-		wtvPyServerID.setLayoutData(fd);
-		lastControl = wtvPyServerID;
+//		wlPyServerID = new Label(wgOptions, SWT.RIGHT);
+//		wlPyServerID.setText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PyServerID.Label"));
+//		wlPyServerID.setToolTipText(BaseMessages.getString(PKG, "CPythonScriptExecutor.PyServerID.TipText"));
+//		PropsUi.setLook(wlPyServerID);
+//		wlPyServerID.setLayoutData(getFirstLabelFormData());
+//
+//		wtvPyServerID = new TextVar(variables, wgOptions, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+//		PropsUi.setLook(wtvPyServerID);
+//		fd = getFirstPromptFormData(wlPyServerID);
+//		fd.right = new FormAttachment(95, 0);
+//		wtvPyServerID.setLayoutData(fd);
+//		lastControl = wtvPyServerID;
 	}
 
 	protected void addUseArrow() {
@@ -913,15 +926,17 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 		wbIncludeInputAsOutput.setSelection(meta.isIncludeInputAsOutput());
 		setItemText(wtvPyVarsToGet, listToString(meta.getPyVarsToGet()));
 		wbContinueOnUnsetVars.setSelection(meta.isContinueOnUnsetVars());
-		setItemText(wtvPythonCommand, meta.getPythonCommand());
-		setItemText(wtvPyPathEntries, meta.getPyPathEntries());
-		setItemText(wtvPyServerID, meta.getServerID());
+//		setItemText(wtvPythonCommand, meta.getPythonCommand());
+//		setItemText(wtvPyPathEntries, meta.getPyPathEntries());
+//		setItemText(wtvPyServerID, meta.getServerID());
+		setItemText(wLibraries, meta.getLibraries());
 		wstcScriptEditor.setText(meta.getScript() == null ? "" : meta.getScript()); //$NON-NLS-1$
 		wbLoadScriptFile.setSelection(meta.isLoadScriptAtRuntime());
 		setItemText(wtvScriptLocation, meta.getLoadScriptFile());
 		wbIncludeRowIndex.setSelection(meta.isIncludeRowIndex());
 		wbUseArrow.setSelection(meta.isUseArrow());
-		wConfigSelection.select(meta.getConfigSelectionIndex());
+		//wConfigSelection.select(meta.getConfigSelectionIndex());
+		wConfigSelection.setText(meta.getConfigName()== null ? "" : meta.getConfigName());
 
 		setInputToFramesTableFields(meta);
 		setOutputFieldsTableFields(meta);
@@ -1019,9 +1034,10 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 		meta.setSeed(wtvRandomSeed.getText());
 		meta.setContinueOnUnsetVars(wbContinueOnUnsetVars.getSelection());
 		meta.setPyVarsToGet(stringToList(wtvPyVarsToGet.getText()));
-		meta.setPythonCommand(wtvPythonCommand.getText());
-		meta.setPyPathEntries(wtvPyPathEntries.getText());
-		meta.setServerID(wtvPyServerID.getText());
+//		meta.setPythonCommand(wtvPythonCommand.getText());
+//		meta.setPyPathEntries(wtvPyPathEntries.getText());
+//		meta.setServerID(wtvPyServerID.getText());
+		meta.setLibraries(wLibraries.getText());
 		meta.setIncludeInputAsOutput(wbIncludeInputAsOutput.getSelection());
 		meta.setScript(wstcScriptEditor.getText());
 		meta.setLoadScriptAtRuntime(wbLoadScriptFile.getSelection());

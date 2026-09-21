@@ -51,6 +51,7 @@ import org.apache.hop.core.vfs.HopVfs;
 import org.apache.hop.i18n.BaseMessages;
 import org.apache.hop.pipeline.transform.BaseTransformData;
 import org.apache.hop.pipeline.transform.ITransformData;
+import org.phalanxdev.hop.metadata.CPythonConfig;
 import org.phalanxdev.hop.pipeline.transforms.reservoirsampling.ReservoirSamplingData;
 import org.phalanxdev.python.PythonSession;
 import org.phalanxdev.python.SessionException;
@@ -80,6 +81,11 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 	 */
 	protected static final int DEFAULT_RESERVOIR_SAMPLING_STORE_ALL_ROWS_SIZE = 100000;
 
+	
+	public String pythonCommand = "";
+	public String pyPathEntries = "";
+	public String serverID = "";
+	
 	/**
 	 * Holds the full output row meta data (including any incoming fields that are
 	 * copied to the outgoing)
@@ -307,48 +313,48 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 	 * Thread-safe pip installer. Synchronized ensures multiple transforms do not
 	 * corrupt pip by running concurrently.
 	 */
-	public static synchronized void installTransformLibraries(String pythonCommand, List<String> libraries,
-			ILogChannel log) {
-		if (libraries == null || libraries.isEmpty()) {
-			return;
-		}
-
-		try {
-			if (log != null)
-				log.logBasic("Checking/Installing libraries: " + String.join(", ", libraries));
-
-			List<String> pipCommand = new ArrayList<>();
-			pipCommand.add(pythonCommand);
-			pipCommand.add("-m");
-			pipCommand.add("pip");
-			pipCommand.add("install");
-			pipCommand.addAll(libraries);
-
-			ProcessBuilder pipPb = new ProcessBuilder(pipCommand);
-			pipPb.redirectErrorStream(true);
-			Process pipProcess = pipPb.start();
-
-			// Read output to prevent freezing
-			java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(
-					pipProcess.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
-			String line;
-			while ((line = reader.readLine()) != null) {
-				// Only log to debug so we don't spam the UI with "Requirement already
-				// satisfied"
-				if (log != null && log.isDebug()) {
-					log.logDebug("[Pip Install] " + line);
-				}
-			}
-
-			int exitCode = pipProcess.waitFor();
-			if (exitCode != 0 && log != null) {
-				log.logError("Warning: pip install returned exit code " + exitCode);
-			}
-		} catch (Exception e) {
-			if (log != null)
-				log.logError("Failed to install Python libraries", e);
-		}
-	}
+//	public static synchronized void installTransformLibraries(String pythonCommand, List<String> libraries,
+//			ILogChannel log) {
+//		if (libraries == null || libraries.isEmpty()) {
+//			return;
+//		}
+//
+//		try {
+//			if (log != null)
+//				log.logBasic("Checking/Installing libraries: " + String.join(", ", libraries));
+//
+//			List<String> pipCommand = new ArrayList<>();
+//			pipCommand.add(pythonCommand);
+//			pipCommand.add("-m");
+//			pipCommand.add("pip");
+//			pipCommand.add("install");
+//			pipCommand.addAll(libraries);
+//
+//			ProcessBuilder pipPb = new ProcessBuilder(pipCommand);
+//			pipPb.redirectErrorStream(true);
+//			Process pipProcess = pipPb.start();
+//
+//			// Read output to prevent freezing
+//			java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(
+//					pipProcess.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
+//			String line;
+//			while ((line = reader.readLine()) != null) {
+//				// Only log to debug so we don't spam the UI with "Requirement already
+//				// satisfied"
+//				if (log != null && log.isDebug()) {
+//					log.logDebug("[Pip Install] " + line);
+//				}
+//			}
+//
+//			int exitCode = pipProcess.waitFor();
+//			if (exitCode != 0 && log != null) {
+//				log.logError("Warning: pip install returned exit code " + exitCode);
+//			}
+//		} catch (Exception e) {
+//			if (log != null)
+//				log.logError("Failed to install Python libraries", e);
+//		}
+//	}
 
 	/**
 	 * Constructs an outgoing row in the case where more than one variable is being
@@ -540,7 +546,7 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 	 * @throws HopException if a problem occurs
 	 */
 	public static PythonSession.RowMetaAndRows determineOutputMetaSingleVariable(Object requester,
-			List<IRowMeta> inputMetas, CPythonScriptExecutorMeta cPythonScriptExecutorMeta, ILogChannel log,
+			List<IRowMeta> inputMetas, CPythonScriptExecutorMeta cPythonScriptExecutorMeta, CPythonConfig config, ILogChannel log,
 			IVariables vars) throws HopException {
 
 		synchronized (requester) {
@@ -578,8 +584,8 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 
 				Random r = new Random(1);
 
-				session = acquirePySession(requester, cPythonScriptExecutorMeta.getPythonCommand(),
-						cPythonScriptExecutorMeta.getServerID(), log, vars);
+				session = acquirePySession(requester, config.getPythonCommand(),
+						config.getServerID(), log, vars);
 
 				List<List<Object[]>> randomRows = new ArrayList<List<Object[]>>();
 				if (inputMetas != null) {
@@ -627,8 +633,8 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 			} catch (Exception ex) {
 				throw new HopException(ex);
 			} finally {
-				releasePySession(requester, cPythonScriptExecutorMeta.getPythonCommand(),
-						cPythonScriptExecutorMeta.getServerID(), vars);
+				releasePySession(requester, config.getPythonCommand(),
+						config.getServerID(), vars);
 			}
 		}
 	}
