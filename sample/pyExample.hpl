@@ -35,13 +35,14 @@ print(iris.head())</script>
     <pyVarsToGet>quant</pyVarsToGet>
     <includeRowIndex>Y</includeRowIndex>
     <continueOnUnsetVars>N</continueOnUnsetVars>
-    <rowsToProcess>ALL</rowsToProcess>
+    <rowsToProcess>All</rowsToProcess>
     <rowsToProcessSize/>
     <doingReservoirSampling>N</doingReservoirSampling>
     <reservoirSamplingSize/>
     <seed>1</seed>
     <includeInputAsOutput>N</includeInputAsOutput>
     <useArrow>N</useArrow>
+    <configName/>
     <outputFields>
       <name>index</name>
       <type>Number</type>
@@ -120,13 +121,14 @@ radviz(iris, 'class')
     <pyVarsToGet>fig4</pyVarsToGet>
     <includeRowIndex>N</includeRowIndex>
     <continueOnUnsetVars>N</continueOnUnsetVars>
-    <rowsToProcess>ALL</rowsToProcess>
+    <rowsToProcess>All</rowsToProcess>
     <rowsToProcessSize/>
     <doingReservoirSampling>N</doingReservoirSampling>
     <reservoirSamplingSize/>
     <seed>1</seed>
     <includeInputAsOutput>N</includeInputAsOutput>
     <useArrow>N</useArrow>
+    <configName/>
     <outputFields>
       <name>fig</name>
       <type>Serializable</type>
@@ -232,13 +234,14 @@ p = DataFrame(preds, columns=['predicted_class_Iris-setosa','predicted_class_Iri
     <pyVarsToGet>p</pyVarsToGet>
     <includeRowIndex>N</includeRowIndex>
     <continueOnUnsetVars>N</continueOnUnsetVars>
-    <rowsToProcess>ALL</rowsToProcess>
+    <rowsToProcess>All</rowsToProcess>
     <rowsToProcessSize/>
     <doingReservoirSampling>N</doingReservoirSampling>
     <reservoirSamplingSize/>
     <seed>1</seed>
     <includeInputAsOutput>Y</includeInputAsOutput>
     <useArrow>N</useArrow>
+    <configName/>
     <outputFields>
       <name>sepallength</name>
       <type>Number</type>
@@ -330,13 +333,14 @@ pdf = pdf.copy()
     <pyVarsToGet>pdf</pyVarsToGet>
     <includeRowIndex>N</includeRowIndex>
     <continueOnUnsetVars>N</continueOnUnsetVars>
-    <rowsToProcess>ALL</rowsToProcess>
+    <rowsToProcess>All</rowsToProcess>
     <rowsToProcessSize/>
     <doingReservoirSampling>N</doingReservoirSampling>
     <reservoirSamplingSize/>
     <seed>1</seed>
     <includeInputAsOutput>N</includeInputAsOutput>
     <useArrow>N</useArrow>
+    <configName/>
     <outputFields>
       <name>PC0</name>
       <type>Number</type>
@@ -406,13 +410,14 @@ joblib.dump(dt,filename)</script>
     <pyVarsToGet>py_data</pyVarsToGet>
     <includeRowIndex>N</includeRowIndex>
     <continueOnUnsetVars>N</continueOnUnsetVars>
-    <rowsToProcess>ALL</rowsToProcess>
+    <rowsToProcess>All</rowsToProcess>
     <rowsToProcessSize/>
     <doingReservoirSampling>N</doingReservoirSampling>
     <reservoirSamplingSize/>
     <seed>1</seed>
     <includeInputAsOutput>N</includeInputAsOutput>
     <useArrow>N</useArrow>
+    <configName/>
     <outputFields>
       <name>sepallength</name>
       <type>Number</type>
