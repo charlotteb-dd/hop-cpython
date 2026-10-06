@@ -50,8 +50,8 @@ import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -130,7 +130,7 @@ public class ServerUtils {
   /**
    * For parsing dates out of CSV returned from python
    */
-  protected static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS" );
+  protected static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
 
   protected static Map<String, Object> createMetadataMessage( String frameName, IRowMeta meta ) {
     Map<String, Object> result = new HashMap<String, Object>();
@@ -736,8 +736,10 @@ public class ServerUtils {
             break;
           case IValueMeta.TYPE_DATE:
             try {
-              row[i] = DATE_FORMAT.parse( parsed[i] );
-            } catch ( ParseException ex ) {
+            	LocalDateTime localDateTime = LocalDateTime.parse( parsed[i], DATE_FORMAT );
+                
+                row[i] = java.util.Date.from( localDateTime.atZone( java.time.ZoneId.systemDefault() ).toInstant() );
+            } catch ( Exception ex ) {
               throw new IOException( ex );
             }
             break;
