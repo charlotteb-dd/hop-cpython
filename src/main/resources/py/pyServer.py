@@ -299,6 +299,7 @@ def send_rows(message):
         else:
             message += ' is not a DataFrame object'
         ack_command_err(message)
+        return
     else:
         ack_command_ok()
     response = {}
