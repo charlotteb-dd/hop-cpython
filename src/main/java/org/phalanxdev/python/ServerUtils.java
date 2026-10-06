@@ -43,6 +43,8 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -1021,25 +1023,29 @@ public class ServerUtils {
    * @throws IOException if a problem occurs
    */
   protected static byte[] readDelimitedFromInputStream( InputStream inputStream ) throws IOException {
-    byte[] sizeBytes = new byte[4];
-    int numRead = inputStream.read( sizeBytes, 0, 4 );
-    if ( numRead < 4 ) {
-      throw new IOException( BaseMessages.getString( PKG, "ServerUtils.Error.FailedToReadMessageSize" ) );
-    }
+	  DataInputStream dis = new DataInputStream( inputStream );
+	  
+	  int messageLength;
+		try {
+		    messageLength = dis.readInt(); 
+		} catch ( EOFException e ) {
+		    throw new IOException( BaseMessages.getString( PKG, "ServerUtils.Error.FailedToReadMessageSize" ), e );
+		}
+	    // Adjust the 100MB (100_000_000) safety limit depending on your expected Arrow payload sizes
+	    if ( messageLength < 0 || messageLength > 200_000_000 ) { 
+	        throw new IOException( "Invalid message length received: " + messageLength + 
+	            ". The communication stream with Python is likely corrupted." );
+	    }
+	    byte[] messageData = new byte[messageLength];
+	    
+	    try {
+	        // readFully() safely loops in the background until the exact array size is filled
+	        dis.readFully( messageData ); 
+	    } catch ( EOFException e ) {
+	        throw new IOException( BaseMessages.getString( PKG, "ServerUtils.Error.UnexpectedEndOfStream" ), e );
+	    }
 
-    int messageLength = ByteBuffer.wrap( sizeBytes ).getInt();
-    byte[] messageData = new byte[messageLength];
-    // for (numRead = 0; numRead < messageLength; numRead +=
-    // inputStream.read(messageData, numRead, messageLength - numRead));
-    for ( numRead = 0; numRead < messageLength; ) {
-      int currentNumRead = inputStream.read( messageData, numRead, messageLength - numRead );
-      if ( currentNumRead < 0 ) {
-        throw new IOException( BaseMessages.getString( PKG, "ServerUtils.Error.UnexpectedEndOfStream" ) );
-      }
-      numRead += currentNumRead;
-    }
-
-    return messageData;
+	    return messageData;
   }
 
   /**
