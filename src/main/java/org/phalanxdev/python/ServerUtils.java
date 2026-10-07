@@ -49,10 +49,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringWriter;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -703,7 +707,7 @@ public class ServerUtils {
    * @return rows of kettle data
    * @throws IOException if a problem occurs
    */
-  protected static RowMetaAndRows csvToRows( String csv, IRowMeta kettleMeta, int numRows ) throws IOException {
+  protected static RowMetaAndRows old_csvToRows( String csv, IRowMeta kettleMeta, int numRows ) throws IOException {
     RowMetaAndRows rowMetaAndRows = new RowMetaAndRows();
     rowMetaAndRows.rowMeta = kettleMeta;
     rowMetaAndRows.rows = new Object[numRows][];
@@ -756,6 +760,74 @@ public class ServerUtils {
 
     return rowMetaAndRows;
   }
+  protected static RowMetaAndRows csvToRows(String csv, IRowMeta kettleMeta, int numRows) throws IOException {
+	    RowMetaAndRows rowMetaAndRows = new RowMetaAndRows();
+	    rowMetaAndRows.rowMeta = kettleMeta;
+	    rowMetaAndRows.rows = new Object[numRows][];
+	    
+	    int count = 0;
+	    
+	    for (String line : csv.split("#\\|\\|#")) {
+	      if (line.isEmpty()) {
+	        continue;
+	      }
+
+	      line = line.replace("\n", "<lf>").replace("\r", "<cr>");
+	      String[] parsed = PARSER.parseLine(line);
+	      Object[] row = new Object[kettleMeta.size()];
+
+	      for (int i = 0; i < kettleMeta.size(); i++) {
+	        String rawValue = parsed[i];
+
+	        if (MISSING_VALUE.equals(rawValue)) {
+	            continue;
+	        }
+
+	        try {
+	          row[i] = parseValueAsHopType(rawValue, kettleMeta.getValueMeta(i).getType());
+	        } catch (Exception ex) {
+	          String colName = kettleMeta.getValueMeta(i).getName();
+	          throw new IOException(String.format(
+	              "Failed to parse column '%s' at row %d. Received value: '%s'", 
+	              colName, count + 1, rawValue), ex);
+	        }
+	      }
+	      
+	      rowMetaAndRows.rows[count++] = row;
+	    }
+
+	    return rowMetaAndRows;
+	  }
+
+	  /**
+	   * Helper method to map string values to native Java objects for Apache Hop
+	   */
+	  private static Object parseValueAsHopType(String value, int hopType) throws Exception {
+	    switch (hopType) {
+	      case IValueMeta.TYPE_NUMBER:
+	        return Double.valueOf(value);
+	        
+	      case IValueMeta.TYPE_INTEGER:
+	        return Long.valueOf(value);
+	        
+	      case IValueMeta.TYPE_BOOLEAN:
+	        return Boolean.parseBoolean(value); 
+	        
+	      case IValueMeta.TYPE_BIGNUMBER:
+	        return new BigDecimal(value);
+	        
+	      case IValueMeta.TYPE_DATE:
+	        LocalDateTime localDateTime = LocalDateTime.parse(value, DATE_FORMAT);
+	        return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+	        
+	      case IValueMeta.TYPE_TIMESTAMP:
+	        LocalDateTime ts = LocalDateTime.parse(value, DATE_FORMAT);
+	        return Timestamp.valueOf(ts);
+	        
+	      default:
+	        return value.replace("<lf>", "\n").replace("<cr>", "\r");
+	    }
+	  }
 
   /**
    * Convert a json message containing field metadata to kettle row metadata
