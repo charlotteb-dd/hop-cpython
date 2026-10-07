@@ -509,8 +509,9 @@ public class ServerUtils {
 
           if (isSocketDeath) {
               log.logDebug("Socket death detected during script execution. Resetting Python server...");
-              PythonSession.resetDeadSession(); // Trigger the Kill Switch
-              throw new HopException( "Broken Pipe: Python server connection lost. The server has been reset for your next run.", ex );
+              throw new HopException( "FATAL_SOCKET_DEATH: Python server connection lost.", ex );
+//              PythonSession.resetDeadSession(); // Trigger the Kill Switch
+//              throw new HopException( "Broken Pipe: Python server connection lost. The server has been reset for your next run.", ex );
           }
         throw new HopException( ex );
       }
@@ -592,8 +593,9 @@ public class ServerUtils {
 
           if (isSocketDeath) {
               System.err.println("Socket death detected during DATA TRANSFER. Resetting Python server...");
-              PythonSession.resetDeadSession();
-              throw new HopException( "Broken Pipe during data transfer. Python server reset for next run.", ex );
+              throw new HopException( "FATAL_SOCKET_DEATH: Python server connection lost.", ex );
+//              PythonSession.resetDeadSession();
+//              throw new HopException( "Broken Pipe during data transfer. Python server reset for next run.", ex );
           }
           
           throw new HopException( ex );
@@ -680,8 +682,7 @@ public class ServerUtils {
 
           if (isSocketDeath) {
               System.err.println("Socket death detected during DATA TRANSFER. Resetting Python server...");
-              PythonSession.resetDeadSession();
-              throw new HopException( "Broken Pipe during data transfer. Python server reset for next run.", ex );
+              throw new HopException( "FATAL_SOCKET_DEATH: Python server connection lost.", ex );
           }
           
           throw new HopException( ex );
@@ -1331,8 +1332,7 @@ public class ServerUtils {
 
           if (isSocketDeath) {
               System.err.println("Socket death detected during DATA TRANSFER. Resetting Python server...");
-              PythonSession.resetDeadSession();
-              throw new HopException( "Broken Pipe during data transfer. Python server reset for next run.", ex );
+              throw new HopException( "FATAL_SOCKET_DEATH: Python server connection lost.", ex );
           }
           
           throw new HopException( ex );
@@ -1413,8 +1413,7 @@ public class ServerUtils {
 
           if (isSocketDeath) {
               System.err.println("Socket death detected during DATA TRANSFER. Resetting Python server...");
-              PythonSession.resetDeadSession();
-              throw new HopException( "Broken Pipe during data transfer. Python server reset for next run.", ex );
+              throw new HopException( "FATAL_SOCKET_DEATH: Python server connection lost.", ex );
           }
           
           throw new HopException( ex );

@@ -1010,7 +1010,12 @@ public class PythonSession {
 		try {
 			ServerUtils.sendRowsToPandasDataFrame(log, rowMeta, rows, pythonFrameName, localSocket.getOutputStream(),
 					localSocket.getInputStream());
-		} catch (IOException ex) {
+		} catch (Exception ex) {
+			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
+	            System.err.println("PythonSession catching socket death. Resetting THIS session...");
+	            this.resetDeadSession(); 
+	            throw new HopException("The connection to the Python server was lost. The session has been safely reset for your next run.", ex);
+	        }
 			throw new HopException(ex);
 		}
 	}
@@ -1029,7 +1034,12 @@ public class PythonSession {
 		try {
 			return ServerUtils.receiveRowsFromPandasDataFrame(log, frameName, includeRowIndex,
 					localSocket.getOutputStream(), localSocket.getInputStream());
-		} catch (IOException ex) {
+		} catch (Exception ex) {
+			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
+	            System.err.println("PythonSession catching socket death. Resetting THIS session...");
+	            this.resetDeadSession(); 
+	            throw new HopException("The connection to the Python server was lost. The session has been safely reset for your next run.", ex);
+	        }
 			throw new HopException(ex);
 		}
 	}
@@ -1054,7 +1064,12 @@ public class PythonSession {
 				ServerUtils.sendRowsToPandasDataFrame(log, rowMeta, rows, pythonFrameName,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			}
-		} catch (IOException ex) {
+		} catch (Exception ex) {
+			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
+	            System.err.println("PythonSession catching socket death. Resetting THIS session...");
+	            this.resetDeadSession(); 
+	            throw new HopException("The connection to the Python server was lost. The session has been safely reset for your next run.", ex);
+	        }
 			throw new HopException(ex);
 		}
 	}
@@ -1079,7 +1094,12 @@ public class PythonSession {
 				return ServerUtils.receiveRowsFromPandasDataFrame(log, frameName, includeRowIndex,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			}
-		} catch (IOException ex) {
+		} catch (Exception ex) {
+			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
+	            System.err.println("PythonSession catching socket death. Resetting THIS session...");
+	            this.resetDeadSession(); 
+	            throw new HopException("The connection to the Python server was lost. The session has been safely reset for your next run.", ex);
+	        }
 			throw new HopException(ex);
 		}
 	}
@@ -1170,7 +1190,12 @@ public class PythonSession {
 		try {
 			return ServerUtils.executeUserScript(pyScript, localSocket.getOutputStream(), localSocket.getInputStream(),
 					log);
-		} catch (IOException ex) {
+		} catch (Exception ex) {
+			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
+	            System.err.println("PythonSession catching socket death. Resetting THIS session...");
+	            this.resetDeadSession(); 
+	            throw new HopException("The connection to the Python server was lost. The session has been safely reset for your next run.", ex);
+	        }
 			throw new HopException(ex);
 		}
 	}
@@ -1265,25 +1290,26 @@ public class PythonSession {
 					serverSocket.close();
 					serverSocket = null;
 				}
-				s_sessionSingleton = null;
+//				s_sessionSingleton = null;
 			} catch (Exception ex) {
 			} finally {
-				s_sessionSingleton = null;
+				if (this == s_sessionSingleton) {
+					s_sessionSingleton = null;
+				}
+//				s_sessionSingleton = null;
 				if (sessionKey != null)
 					pythonServers.remove(sessionKey);
 			}
 		}
 	}
 
-	public static void resetDeadSession() {
+	public void resetDeadSession() {
 		if (s_sessionSingleton != null) {
 			try {
 				System.err.println("Fatal socket error detected. Forcing Python server reset...");
-				s_sessionSingleton.shutdown();
+				this.shutdown();
 			} catch (Exception e) {
 				// Ignore errors during forced cleanup
-			} finally {
-				s_sessionSingleton = null;
 			}
 		}
 	}
