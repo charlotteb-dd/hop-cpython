@@ -22,6 +22,8 @@
 
 package org.phalanxdev.hop.pipeline.transforms.cpython;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,27 +83,80 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 		this.meta = meta;
 		this.data = data;
 	}
+	
+	private List<String> getMissingLibraries(String pythonCommand, List<String> libraries) throws Exception {
+		String checkScript = 
+				"import sys\n" +
+				"from importlib.metadata import version, PackageNotFoundError\n" +
+				"missing = []\n" +
+				"for lib in sys.argv[1:]:\n" +
+				"    try:\n" +
+				"        version(lib)\n" +
+				"    except PackageNotFoundError:\n" +
+				"        missing.append(lib)\n" +
+				"for m in missing:\n" +
+				"    print(m)\n";
 
-	private synchronized void installTransformLibraries(String pythonCommand, java.util.List<String> libraries) {
+		List<String> checkCommand = new ArrayList<>();
+		checkCommand.add(pythonCommand);
+		checkCommand.add("-c");
+		checkCommand.add(checkScript);
+		checkCommand.addAll(libraries);
+
+		ProcessBuilder checkPb = new ProcessBuilder(checkCommand);
+		Process checkProcess = checkPb.start();
+		
+		List<String> missingLibraries = new ArrayList<>();
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+				checkProcess.getInputStream(), StandardCharsets.UTF_8))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				String missingLib = line.trim();
+				if (!missingLib.isEmpty()) {
+					missingLibraries.add(missingLib);
+				}
+			}
+		}
+		checkProcess.waitFor();
+
+		return missingLibraries;
+	}
+	
+	
+	private synchronized void installTransformLibraries(String pythonCommand, List<String> libraries) {
 		if (libraries == null || libraries.isEmpty()) {
 			return;
 		}
+		
+		List<String> librariesToInstall = libraries;
 		try {
-			getLogChannel().logBasic("Checking/Installing required libraries: " + String.join(", ", libraries));
+			librariesToInstall = getMissingLibraries(pythonCommand, libraries);
+			
+			if (librariesToInstall.isEmpty()) {
+				if (getLogChannel().isDebug()) {
+					getLogChannel().logDebug("All required Python libraries are already installed. Skipping pip.");
+				}
+				return;
+			}
+		} catch (Exception e) {
+			getLogChannel().logDebug("Could not verify existing libraries. Falling back to pip install. Error: " + e.getMessage());
+		}
+		try {
+			getLogChannel().logBasic("Checking/Installing required libraries: " + String.join(", ", librariesToInstall));
 
-			java.util.List<String> pipCommand = new java.util.ArrayList<>();
+			List<String> pipCommand = new ArrayList<>();
 			pipCommand.add(pythonCommand);
 			pipCommand.add("-m");
 			pipCommand.add("pip");
 			pipCommand.add("install");
-			pipCommand.addAll(libraries);
+			pipCommand.addAll(librariesToInstall);
 
 			ProcessBuilder pipPb = new ProcessBuilder(pipCommand);
 			pipPb.redirectErrorStream(true);
 			Process pipProcess = pipPb.start();
 
 			// Read output to prevent freezing
-			java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					pipProcess.getInputStream(), StandardCharsets.UTF_8));
 			String line;
 			while ((line = reader.readLine()) != null) {
