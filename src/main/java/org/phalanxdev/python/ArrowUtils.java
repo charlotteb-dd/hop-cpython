@@ -50,6 +50,7 @@ import java.math.BigDecimal;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -164,8 +165,6 @@ public class ArrowUtils {
 			arrowType = new ArrowType.Decimal(38, 10, 128); // 128-bit decimal
 			break;
 		case IValueMeta.TYPE_DATE:
-			arrowType = new ArrowType.Date(DateUnit.MILLISECOND);
-			break;
 		case IValueMeta.TYPE_TIMESTAMP:
 			arrowType = new ArrowType.Timestamp(TimeUnit.MILLISECOND, null);
 			break;
@@ -193,17 +192,38 @@ public class ArrowUtils {
 			String name = field.getName();
 
 			ArrowType arrowType = field.getType();
-			int hopType = switch (arrowType) {
-			case ArrowType.Utf8 t -> IValueMeta.TYPE_STRING;
-			case ArrowType.Int t -> IValueMeta.TYPE_INTEGER;
-			case ArrowType.FloatingPoint t -> IValueMeta.TYPE_NUMBER;
-			case ArrowType.Decimal t -> IValueMeta.TYPE_BIGNUMBER;
-			case ArrowType.Date t -> IValueMeta.TYPE_DATE;
-			case ArrowType.Timestamp t -> IValueMeta.TYPE_TIMESTAMP;
-			case ArrowType.Bool t -> IValueMeta.TYPE_BOOLEAN;
-			case ArrowType.Binary t -> IValueMeta.TYPE_BINARY;
-			default -> IValueMeta.TYPE_STRING;
-			};
+			int hopType;
+			if (arrowType instanceof ArrowType.Utf8) {
+				hopType = IValueMeta.TYPE_STRING;
+			} else if (arrowType instanceof ArrowType.Int) {
+				hopType = IValueMeta.TYPE_INTEGER;
+			} else if (arrowType instanceof ArrowType.FloatingPoint) {
+				hopType = IValueMeta.TYPE_NUMBER;
+			} else if (arrowType instanceof ArrowType.Decimal) {
+				hopType = IValueMeta.TYPE_BIGNUMBER;
+			} else if (arrowType instanceof ArrowType.Date) {
+				hopType = IValueMeta.TYPE_DATE;
+			} else if (arrowType instanceof ArrowType.Timestamp) {
+				hopType = IValueMeta.TYPE_TIMESTAMP;
+			} else if (arrowType instanceof ArrowType.Bool) {
+				hopType = IValueMeta.TYPE_BOOLEAN;
+			} else if (arrowType instanceof ArrowType.Binary) {
+				hopType = IValueMeta.TYPE_BINARY;
+			} else {
+				hopType = IValueMeta.TYPE_STRING;
+			}
+			// java version 21 seulement et hop java 17
+//			int hopType = switch (arrowType) {
+//			case ArrowType.Utf8 t -> IValueMeta.TYPE_STRING;
+//			case ArrowType.Int t -> IValueMeta.TYPE_INTEGER;
+//			case ArrowType.FloatingPoint t -> IValueMeta.TYPE_NUMBER;
+//			case ArrowType.Decimal t -> IValueMeta.TYPE_BIGNUMBER;
+//			case ArrowType.Date t -> IValueMeta.TYPE_DATE;
+//			case ArrowType.Timestamp t -> IValueMeta.TYPE_TIMESTAMP;
+//			case ArrowType.Bool t -> IValueMeta.TYPE_BOOLEAN;
+//			case ArrowType.Binary t -> IValueMeta.TYPE_BINARY;
+//			default -> IValueMeta.TYPE_STRING;
+//			};
 
 			IValueMeta valueMeta = ValueMetaFactory.createValueMeta(name, hopType);
 			rowMeta.addValueMeta(valueMeta);
@@ -234,6 +254,7 @@ public class ArrowUtils {
 			break;
 		case IValueMeta.TYPE_BIGNUMBER:
 			BigDecimal bd = valueMeta.getBigNumber(value);
+			bd = bd.setScale(10, java.math.RoundingMode.HALF_UP);
 			((DecimalVector) vector).setSafe(index, bd);
 			break;
 		case IValueMeta.TYPE_DATE:
@@ -264,31 +285,38 @@ public class ArrowUtils {
 		if (vector.isNull(index)) {
 			return null;
 		}
-
+		
+		Object arrowObject = vector.getObject(index);
+		
 		switch (valueMeta.getType()) {
 		case IValueMeta.TYPE_STRING:
-			return ((VarCharVector) vector).getObject(index).toString();
+			return arrowObject.toString();
 		case IValueMeta.TYPE_INTEGER:
-			return ((BigIntVector) vector).get(index);
+			return ((Number) arrowObject).longValue(); // Safely handles Int32 or Int64
 		case IValueMeta.TYPE_NUMBER:
-			return ((Float8Vector) vector).get(index);
+			return ((Number) arrowObject).doubleValue(); // Safely handles Float32 or Float64
 		case IValueMeta.TYPE_BIGNUMBER:
-			return ((DecimalVector) vector).getObject(index);
+			return new BigDecimal(arrowObject.toString());
 		case IValueMeta.TYPE_DATE:
-			if (vector instanceof DateMilliVector) {
-				return new Date(((DateMilliVector) vector).get(index));
-			} else if (vector instanceof TimeStampMilliVector) {
-				return new Date(((TimeStampMilliVector) vector).get(index));
+	        if (vector instanceof DateMilliVector) {
+	            return new Date(((DateMilliVector) vector).get(index));
+	          } else if (vector instanceof TimeStampMilliVector) {
+	            return new Date(((TimeStampMilliVector) vector).get(index));
+	          }
+	          return null;
+		case IValueMeta.TYPE_TIMESTAMP:
+			if (arrowObject instanceof Long) {
+				return new java.sql.Timestamp((Long) arrowObject);
+			} else if (arrowObject instanceof java.time.LocalDateTime) {
+				return java.sql.Timestamp.valueOf((java.time.LocalDateTime) arrowObject);
 			}
 			return null;
-		case IValueMeta.TYPE_TIMESTAMP:
-			return new Date(((TimeStampMilliVector) vector).get(index));
 		case IValueMeta.TYPE_BOOLEAN:
-			return ((BitVector) vector).get(index) == 1;
+			return Boolean.TRUE.equals(arrowObject) || (arrowObject instanceof Number && ((Number) arrowObject).intValue() == 1);
 		case IValueMeta.TYPE_BINARY:
-			return ((VarBinaryVector) vector).get(index);
+			return vector.getObject(index);
 		default:
-			return vector.getObject(index).toString();
+			return arrowObject.toString();
 		}
 	}
 
