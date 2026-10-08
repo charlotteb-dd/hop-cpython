@@ -101,6 +101,8 @@ public class PythonSession {
 		public IRowMeta rowMeta;
 	}
 
+	private String envName = "default_env";
+	
 	/**
 	 * The command used to start python for this session.
 	 */
@@ -685,6 +687,17 @@ public class PythonSession {
 		}
 	}
 	
+	public String getEnvName() {
+        return envName;
+    }
+
+    public void setEnvName(String envName) {
+        if (envName != null && !envName.trim().isEmpty()) {
+            this.envName = envName;
+        } else {
+            this.envName = "default_env";
+        }
+    }
 
 	/**
 	 * Starts the server socket.
@@ -1001,7 +1014,7 @@ public class PythonSession {
 	public void rowsToPythonDataFrame(IRowMeta rowMeta, List<Object[]> rows, String pythonFrameName)
 			throws HopException {
 		try {
-			ServerUtils.sendRowsToPandasDataFrame(log, rowMeta, rows, pythonFrameName, localSocket.getOutputStream(),
+			ServerUtils.sendRowsToPandasDataFrame(envName, log, rowMeta, rows, pythonFrameName, localSocket.getOutputStream(),
 					localSocket.getInputStream());
 		} catch (Exception ex) {
 			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
@@ -1025,7 +1038,7 @@ public class PythonSession {
 	 */
 	public RowMetaAndRows rowsFromPythonDataFrame(String frameName, boolean includeRowIndex) throws HopException {
 		try {
-			return ServerUtils.receiveRowsFromPandasDataFrame(log, frameName, includeRowIndex,
+			return ServerUtils.receiveRowsFromPandasDataFrame(envName, log, frameName, includeRowIndex,
 					localSocket.getOutputStream(), localSocket.getInputStream());
 		} catch (Exception ex) {
 			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
@@ -1050,11 +1063,11 @@ public class PythonSession {
 			throws HopException {
 		try {
 			if (useArrow && arrowAvailable) {
-				ServerUtils.sendRowsToPandasDataFrameArrow(log, rowMeta, rows, pythonFrameName,
+				ServerUtils.sendRowsToPandasDataFrameArrow(envName, log, rowMeta, rows, pythonFrameName,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			} else {
 				// Fall back to CSV
-				ServerUtils.sendRowsToPandasDataFrame(log, rowMeta, rows, pythonFrameName,
+				ServerUtils.sendRowsToPandasDataFrame(envName, log, rowMeta, rows, pythonFrameName,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			}
 		} catch (Exception ex) {
@@ -1080,11 +1093,11 @@ public class PythonSession {
 			throws HopException {
 		try {
 			if (useArrow && arrowAvailable) {
-				return ServerUtils.receiveRowsFromPandasDataFrameArrow(log, frameName, includeRowIndex,
+				return ServerUtils.receiveRowsFromPandasDataFrameArrow(envName, log, frameName, includeRowIndex,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			} else {
 				// Fall back to CSV
-				return ServerUtils.receiveRowsFromPandasDataFrame(log, frameName, includeRowIndex,
+				return ServerUtils.receiveRowsFromPandasDataFrame(envName, log, frameName, includeRowIndex,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			}
 		} catch (Exception ex) {
@@ -1124,7 +1137,7 @@ public class PythonSession {
 	 */
 	public boolean checkIfPythonVariableIsSet(String pyVarName) throws HopException {
 		try {
-			return ServerUtils.checkIfPythonVariableIsSet(log, pyVarName, localSocket.getInputStream(),
+			return ServerUtils.checkIfPythonVariableIsSet(envName, log, pyVarName, localSocket.getInputStream(),
 					localSocket.getOutputStream());
 		} catch (IOException ex) {
 			throw new HopException(ex);
@@ -1145,7 +1158,7 @@ public class PythonSession {
 	 */
 	public List<String> getPythonDebugBuffer() throws HopException {
 		try {
-			return ServerUtils.receiveDebugBuffer(localSocket.getOutputStream(), localSocket.getInputStream(), log);
+			return ServerUtils.receiveDebugBuffer(envName, localSocket.getOutputStream(), localSocket.getInputStream(), log);
 		} catch (IOException ex) {
 			throw new HopException(ex);
 		}
@@ -1164,7 +1177,7 @@ public class PythonSession {
 	 */
 	public PythonVariableType getPythonVariableType(String varName) throws HopException {
 		try {
-			return ServerUtils.getPythonVariableType(varName, localSocket.getOutputStream(),
+			return ServerUtils.getPythonVariableType(envName, varName, localSocket.getOutputStream(),
 					localSocket.getInputStream(), log);
 		} catch (IOException ex) {
 			throw new HopException(ex);
@@ -1179,9 +1192,9 @@ public class PythonSession {
 	 *         index 1 contains std err
 	 * @throws HopException if a problem occurs
 	 */
-	public List<String> executeScript(String pyScript) throws HopException {
+	public List<String> executeScript(String envName, String pyScript) throws HopException {
 		try {
-			return ServerUtils.executeUserScript(pyScript, localSocket.getOutputStream(), localSocket.getInputStream(),
+			return ServerUtils.executeUserScript(envName, pyScript, localSocket.getOutputStream(), localSocket.getInputStream(),
 					log);
 		} catch (Exception ex) {
 			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
@@ -1204,7 +1217,7 @@ public class PythonSession {
 	 */
 	public BufferedImage getImageFromPython(String varName) throws HopException {
 		try {
-			return ServerUtils.getPNGImageFromPython(varName, localSocket.getOutputStream(),
+			return ServerUtils.getPNGImageFromPython(envName, varName, localSocket.getOutputStream(),
 					localSocket.getInputStream(), log);
 		} catch (IOException ex) {
 			throw new HopException(ex);
@@ -1220,7 +1233,7 @@ public class PythonSession {
 	 */
 	public String getVariableValueFromPythonAsPlainString(String varName) throws HopException {
 		try {
-			return ServerUtils.receivePickledVariableValue(varName, localSocket.getOutputStream(),
+			return ServerUtils.receivePickledVariableValue(envName, varName, localSocket.getOutputStream(),
 					localSocket.getInputStream(), true, log);
 		} catch (IOException ex) {
 			throw new HopException(ex);
@@ -1242,7 +1255,7 @@ public class PythonSession {
 						log.logDebug("Sending shutdown command...");
 					}
 					if (log == null || log.isDebug()) {
-						List<String> outAndErr = ServerUtils.receiveDebugBuffer(localSocket.getOutputStream(),
+						List<String> outAndErr = ServerUtils.receiveDebugBuffer(envName, localSocket.getOutputStream(),
 								localSocket.getInputStream(), log);
 						if (outAndErr.get(0).length() > 0) {
 							if (log == null) {
@@ -1343,7 +1356,7 @@ public class PythonSession {
 				System.err.println("Variable 'test' does not seem to be set in python!!!!");
 			}
 
-			session.executeScript("x = 100\n");
+			session.executeScript("main_test_env", "x = 100\n");
 			if (session.checkIfPythonVariableIsSet("x")) {
 				System.err.println("Var x is set!");
 			}

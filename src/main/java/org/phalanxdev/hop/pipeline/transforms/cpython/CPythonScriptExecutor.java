@@ -384,110 +384,121 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 	}
 
 	protected void processBatch(boolean allDone) throws HopException {
-		PythonSession session = null;
-	
-		try {
-			if (!noInputRowSets && !meta.isDoingReservoirSampling() && data.incomingRowSets.size() >= 1) {
-				boolean framesAdded = false;
-				for (int i = 0; i < data.frameBuffers.size(); i++) {
-					List<Object[]> frameBuffer = data.frameBuffers.get(i);
-					if ((frameBuffer.size() == data.batchSize && frameBuffer.size() > 0)
-							|| (allDone && frameBuffer.size() > 0)) {
-						// push buffer into python and process result
-						String frameName = resolve(meta.getInputFrames().get(i).getFrameName());
+	    PythonSession session = null;
 
-						logDetailed(BaseMessages.getString(PKG,
-								"CPythonScriptExecutor.Message.PushingBatchIntoPandasDataFrame",
-								// $NON-NLS-1$
-								frameBuffer.size(), frameName));
+	    try {
+	        if (noInputRowSets) {
+	            session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand, data.serverID, getLogChannel(), this);
+	            session.setUseArrow(meta.isUseArrow());
+	            executeScriptAndProcessResult(session, meta.isContinueOnUnsetVars());
+	            return;
+	        }
 
-						// session = CPythonScriptExecutorData.acquirePySession(this, getLogChannel(),
-						// this);
-						session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand,
-								data.serverID, getLogChannel(), this);
-						// Configure Arrow usage based on meta configuration
-						session.setUseArrow(meta.isUseArrow());
-						rowsToPyDataFrame(session, data.incomingRowSets.get(i).getRowMeta(), frameBuffer, frameName);
-						framesAdded = true;
-					} else {
-						framesAdded = false;
-					}
-				}
+	        if (!meta.isDoingReservoirSampling() && !data.incomingRowSets.isEmpty()) {
+	            boolean executeScript = false;
+	            // Track exactly which buffers we push so we don't accidentally clear unsent data
+	            List<List<Object[]>> buffersToClear = new ArrayList<>();
 
-				if (framesAdded) {
-					executeScriptAndProcessResult(session, meta.isContinueOnUnsetVars());
-					// clean the current frame buffers
-					for (List<Object[]> frame : data.frameBuffers) {
-						frame.clear();
-					}
-				}
-			} else if (!noInputRowSets && allDone) {
-				session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand, data.serverID,
-						getLogChannel(), this);
-				// Configure Arrow usage based on meta configuration
-				session.setUseArrow(meta.isUseArrow());
+	            for (int i = 0; i < data.frameBuffers.size(); i++) {
+	                List<Object[]> frameBuffer = data.frameBuffers.get(i);
+	                
+	                if (frameBuffer.size() >= data.batchSize || (allDone && !frameBuffer.isEmpty())) {
+	                    
+	                    if (session == null) {
+	                        session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand, data.serverID, getLogChannel(), this);
+	                        session.setUseArrow(meta.isUseArrow());
+	                    }
 
-				// grab all the reservoirs an push to python; then process result
-				logDetailed(BaseMessages.getString(PKG, "CPythonScriptExecutor.Message.RetrievingReservoirs"));
-				for (int j = 0; j < data.reservoirSamplers.size(); j++) {
-					ReservoirSamplingData reservoirSamplers = data.reservoirSamplers.get(j);
-					String frameName = resolve(meta.getInputFrames().get(j).getFrameName());
-					List<Object[]> sample = reservoirSamplers.getSample();
-					CPythonScriptExecutorData.pruneNullRowsFromSample(sample);
+	                    String frameName = resolve(meta.getInputFrames().get(i).getFrameName());
+	                    logDetailed(BaseMessages.getString(PKG, "CPythonScriptExecutor.Message.PushingBatchIntoPandasDataFrame", frameBuffer.size(), frameName));
+	                    
+	                    rowsToPyDataFrame(session, data.incomingRowSets.get(i).getRowMeta(), frameBuffer, frameName);
+	                    
+	                    buffersToClear.add(frameBuffer);
+	                    executeScript = true;
+	                }
+	            }
 
-					if (sample != null && sample.size() > 0) {
-						logDetailed(BaseMessages.getString(PKG,
-								"CPythonScriptExecutor.Message.PushingSampleFromReservoirIntoPandasDataFrame", j,
-								frameName)); // $NON-NLS-1$
-						logDetailed(
-								BaseMessages.getString(PKG, "CPythonScriptExecutor.Message.SampleSize", sample.size())); //$NON-NLS-1$
+	            if (executeScript) {
+	                executeScriptAndProcessResult(session, meta.isContinueOnUnsetVars());
+	                // Only clear the buffers that were actually sent to Python
+	                for (List<Object[]> buffer : buffersToClear) {
+	                    buffer.clear();
+	                }
+	            }
+	            return;
+	        }
 
-						if (data.batchSize == 1) { // we need to process row by row the sample. we will only have one
-													// sample
-							
-							List<Object[]> sampleSpliced = new ArrayList<Object[]>();
-							for (int k = 0; k < sample.size(); k++) {
-								Object[] objects = sample.get(k);
-								session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand,
-										data.serverID, getLogChannel(), this);
-								// Configure Arrow usage based on meta configuration
-								session.setUseArrow(meta.isUseArrow());
-								sampleSpliced.clear();
-								sampleSpliced.add(objects);
-								rowsToPyDataFrame(session, data.incomingRowSets.get(j).getRowMeta(), sampleSpliced,
-										frameName);
-								data.rowByRowReservoirSampleIndex = k;
+	        if (allDone) {
+	            logDetailed(BaseMessages.getString(PKG, "CPythonScriptExecutor.Message.RetrievingReservoirs"));
+	            
+	            int maxRows = 0;
+	            List<List<Object[]>> allSamples = new ArrayList<>();
+	            
+	            for (int j = 0; j < data.reservoirSamplers.size(); j++) {
+	                List<Object[]> sample = data.reservoirSamplers.get(j).getSample();
+	                CPythonScriptExecutorData.pruneNullRowsFromSample(sample);
+	                allSamples.add(sample);
+	                
+	                if (sample != null && sample.size() > maxRows) {
+	                    maxRows = sample.size();
+	                }
+	            }
 
-								executeScriptAndProcessResult(session, meta.isContinueOnUnsetVars());
+	            if (maxRows == 0) {
+	                return;
+	            }
 
-								if (session != null) {
-									CPythonScriptExecutorData.releasePySession(this, data.pythonCommand,
-											data.serverID, this);
-								}
-							}
+	            session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand, data.serverID, getLogChannel(), this);
+	            session.setUseArrow(meta.isUseArrow());
 
-						} else { // process the full sample
-							rowsToPyDataFrame(session, data.incomingRowSets.get(j).getRowMeta(), sample, frameName);
-						}
-					}
-				}
-
-				if (data.batchSize != 1) {
-					executeScriptAndProcessResult(session, meta.isContinueOnUnsetVars());
-				}
-			} else if (noInputRowSets) {
-				// just get results from script as we have no inputs to us
-				session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand, data.serverID,
-						getLogChannel(), this);
-				// Configure Arrow usage based on meta configuration
-				session.setUseArrow(meta.isUseArrow());
-				executeScriptAndProcessResult(session, meta.isContinueOnUnsetVars());
-			}
-		} finally {
-			if (session != null) {
-				CPythonScriptExecutorData.releasePySession(this, data.pythonCommand, data.serverID, this);
-			}
-		}
+	            if (data.batchSize == 1) {
+	                for (int rowIndex = 0; rowIndex < maxRows; rowIndex++) {
+	                    boolean rowPushed = false;
+	                    
+	                    for (int j = 0; j < data.reservoirSamplers.size(); j++) {
+	                        List<Object[]> sample = allSamples.get(j);
+	                        
+	                        if (sample != null && rowIndex < sample.size()) {
+	                            String frameName = resolve(meta.getInputFrames().get(j).getFrameName());
+	                            
+	                            List<Object[]> singleRowList = new ArrayList<>(1);
+	                            singleRowList.add(sample.get(rowIndex));
+	                            
+	                            rowsToPyDataFrame(session, data.incomingRowSets.get(j).getRowMeta(), singleRowList, frameName);
+	                            rowPushed = true;
+	                        }
+	                    }
+	                    if (rowPushed) {
+	                        data.rowByRowReservoirSampleIndex = rowIndex;
+	                        executeScriptAndProcessResult(session, meta.isContinueOnUnsetVars());
+	                    }
+	                }
+	            } else {
+	                boolean anySamplePushed = false;
+	                
+	                for (int j = 0; j < data.reservoirSamplers.size(); j++) {
+	                    List<Object[]> sample = allSamples.get(j);
+	                    
+	                    if (sample != null && !sample.isEmpty()) {
+	                        String frameName = resolve(meta.getInputFrames().get(j).getFrameName());
+	                        logDetailed(BaseMessages.getString(PKG, "CPythonScriptExecutor.Message.PushingSampleFromReservoirIntoPandasDataFrame", j, frameName));
+	                        logDetailed(BaseMessages.getString(PKG, "CPythonScriptExecutor.Message.SampleSize", sample.size()));
+	                        
+	                        rowsToPyDataFrame(session, data.incomingRowSets.get(j).getRowMeta(), sample, frameName);
+	                        anySamplePushed = true;
+	                    }
+	                }
+	                if (anySamplePushed) {
+	                    executeScriptAndProcessResult(session, meta.isContinueOnUnsetVars());
+	                }
+	            }
+	        }
+	    } finally {
+	        if (session != null) {
+	            CPythonScriptExecutorData.releasePySession(this, data.pythonCommand, data.serverID, this);
+	        }
+	    }
 	}
 
 	protected void executeScriptAndProcessResult(PythonSession session, boolean continueOnUnsetVars)
@@ -582,7 +593,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 	}
 
 	protected void executeScript(PythonSession session, String pyScript) throws HopException {
-		List<String> outAndErr = session.executeScript(resolve(pyScript));
+		List<String> outAndErr = session.executeScript(this.getName(), resolve(pyScript));
 
 		// TODO could add another setting to allow the user to specify if the step
 		// should try to continue after a script execution error. Note that ServerUtils

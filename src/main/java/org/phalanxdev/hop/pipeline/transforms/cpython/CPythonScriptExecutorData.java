@@ -50,6 +50,7 @@ import org.apache.hop.core.variables.IVariables;
 import org.apache.hop.core.vfs.HopVfs;
 import org.apache.hop.i18n.BaseMessages;
 import org.apache.hop.pipeline.transform.BaseTransformData;
+import org.apache.hop.pipeline.transform.ITransform;
 import org.apache.hop.pipeline.transform.ITransformData;
 import org.phalanxdev.hop.metadata.CPythonConfig;
 import org.phalanxdev.hop.pipeline.transforms.reservoirsampling.ReservoirSamplingData;
@@ -81,7 +82,7 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 	 */
 	protected static final int DEFAULT_RESERVOIR_SAMPLING_STORE_ALL_ROWS_SIZE = 100000;
 
-	
+//	public String envName;
 	public String pythonCommand = "";
 	public String pyPathEntries = "";
 	public String serverID = "";
@@ -586,6 +587,8 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 
 				session = acquirePySession(requester, config.getPythonCommand(),
 						config.getServerID(), log, vars);
+				//TODO: add it here
+				
 
 				List<List<Object[]>> randomRows = new ArrayList<List<Object[]>>();
 				if (inputMetas != null) {
@@ -600,7 +603,8 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 					}
 				}
 
-				List<String> outAndErrors = session.executeScript(script);
+				
+				List<String> outAndErrors = session.executeScript(cPythonScriptExecutorMeta.getName(), script);
 				if (!org.apache.hop.core.util.Utils.isEmpty(outAndErrors.get(1))) {
 					throw new HopException(outAndErrors.get(1));
 				}
@@ -736,6 +740,12 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 		}
 
 		session.setLog(log);
+		
+		if (requester instanceof ITransform transform) {
+			session.setEnvName(transform.getTransformName());
+		} else if (requester != null) {
+			session.setEnvName(requester.toString());
+		}
 		return session;
 	}
 

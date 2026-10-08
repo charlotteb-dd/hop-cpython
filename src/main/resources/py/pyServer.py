@@ -21,10 +21,8 @@ import struct
 import os
 import json
 import base64
-import math
 import traceback
 import pandas as pd
-import matplotlib
 import matplotlib.pyplot as plt
 import csv
 
@@ -45,19 +43,27 @@ if _global_python3:
 else:
     try:
         from cStringIO import StringIO
-    except:
+    except Exception:
         from StringIO import StringIO
 
 try:
     import cPickle as pickle
-except:
+except Exception:
     import pickle
 
 _global_connection = None
-_global_env = {}
 _global_use_arrow = False  # Flag to control Arrow usage
 
 _global_startup_debug = False
+
+_isolated_envs = {}
+
+def get_env(env_name):
+    """Retrieves or creates an isolated dictionary for a specific transform"""
+    if env_name not in _isolated_envs:
+        # Initialize with standard built-ins so functions like print() and len() work
+        _isolated_envs[env_name] = {'__builtins__': __builtins__}
+    return _isolated_envs[env_name]
 
 # _global_std_out = StringIO()
 # _global_std_err = StringIO()
@@ -89,7 +95,7 @@ def runServer():
                 if _global_startup_debug:
                     print('message did not contain a command field!')
                 continue
-				
+
             #if 'command' in message:
              #   command = message['command']
                 # Check if we should use Arrow for this session
@@ -164,6 +170,9 @@ def receive_rows_arrow(message):
         frame_name = row_meta['frame_name']
         num_rows = message['num_rows']
         
+        env_name = message.get('env_name', 'default_env')
+        env = get_env(env_name)
+        
         if num_rows > 0:
             # Receive Arrow IPC stream
             size_bytes = b''
@@ -184,9 +193,9 @@ def receive_rows_arrow(message):
             table = reader.read_all()
             frame = table.to_pandas()
             
-            _global_env[frame_name] = frame
+            env[frame_name] = frame
             
-            if message_debug(message) == True:
+            if message_debug(message):
                 print(frame.info(), '\n')
                 print(frame, '\n')
         
@@ -199,7 +208,8 @@ def receive_rows_arrow(message):
 def send_rows_arrow(message):
     """Send rows using Apache Arrow format"""
     frame_name = message['frame_name']
-    frame = get_variable(frame_name)
+    env_name = message.get('env_name') or 'default_env'
+    frame = get_variable(env_name, frame_name)
     include_index = False
     if 'include_index' in message:
         include_index = message['include_index']
@@ -222,7 +232,7 @@ def send_rows_arrow(message):
     response['num_rows'] = len(frame.index)
     response['fields'] = frame_to_fields_list(frame, include_index)
     response['format'] = 'arrow'
-    if message_debug(message) == True:
+    if message_debug(message):
         print(response)
     send_response(response, True)
     
@@ -250,7 +260,7 @@ def receive_rows(message):
         row_meta = message['row_meta']
         frame_name = row_meta['frame_name']
         num_rows = message['num_rows']
-        b64e = message['base64'];
+        b64e = message['base64']
         frame = None
         if num_rows > 0:
             # receive the CSV
@@ -268,7 +278,10 @@ def receive_rows(message):
             frame = pd.read_csv(StringIO(csv_data), na_values='?',
                                 quotechar='\'', escapechar='\\',
                                 index_col=None)
-            _global_env[frame_name] = frame
+               
+            env_name = message.get('env_name', 'default_env')
+            env = get_env(env_name)
+            env[frame_name] = frame
             # convert any date longs to date objects and
             # any boolean strings to True/False
             for field in row_meta['fields']:
@@ -278,7 +291,7 @@ def receive_rows(message):
                     frame[field_name] = (frame[field_name] == 1)
                 elif field_type == 'date':
                     frame[field_name] = pd.to_datetime(frame[field_name],unit='ms')
-            if message_debug(message) == True:
+            if message_debug(message):
                 print(frame.info(), '\n')
                 print (frame, '\n')
         ack_command_ok()
@@ -288,7 +301,8 @@ def receive_rows(message):
 
 def send_rows(message):
     frame_name = message['frame_name']
-    frame = get_variable(frame_name)
+    env_name = message.get('env_name') or 'default_env'
+    frame = get_variable(env_name, frame_name)
     include_index = False
     if 'include_index' in message:
         include_index = message['include_index']
@@ -307,7 +321,7 @@ def send_rows(message):
     response['response'] = 'row_meta'
     response['num_rows'] = len(frame.index)
     response['fields'] = frame_to_fields_list(frame, include_index)
-    if message_debug(message) == True:
+    if message_debug(message):
         print(response)
     send_response(response, True)
     s = StringIO()
@@ -412,33 +426,38 @@ def ack_command_ok():
     send_response(ok_response, True)
 
 
-def get_variable(var_name):
-    if var_name in _global_env:
-        return _global_env[var_name]
-    else:
-        return None
-
+def get_variable(env_name, var_name):
+    env = get_env(env_name)
+    return env.get(var_name)
 
 def execute_script(message):
     if 'script' in message:
         script = message['script']
+        
+        env_name = message.get('env_name', 'default_env')
+        
+        env = get_env(env_name)
+
         tOut = sys.stdout
         tErr = sys.stderr
         output = StringIO()
         error = StringIO()
+        
         if message_debug(message):
-            print('Executing script...\n\n' + script)
+            print(f'Executing script in isolated env [{env_name}]...\n\n' + script)
+            
         sys.stdout = output
         sys.stderr = error
+        
         try:
-            exec (script, _global_env)
+            exec(script, env, env)
         except Exception:
             print('Got an exception executing script')
             traceback.print_exc(file=error)
+            
         sys.stdout = tOut
         sys.stderr = tErr
-        # sys.stdout = sys.__stdout__
-        # sys.stderr = sys.__stderr__
+        
         ok_response = {}
         ok_response['response'] = 'ok'
         ok_response['script_out'] = output.getvalue()
@@ -448,11 +467,11 @@ def execute_script(message):
         error = 'execute script json message does not contain a script entry!'
         ack_command_err(error)
 
-
 def send_variable_is_set(message):
     if 'variable_name' in message:
         var_name = message['variable_name']
-        var_value = get_variable(var_name)
+        env_name = message.get('env_name') or 'default_env'
+        var_value = get_variable(env_name, var_name)
         ok_response = {}
         ok_response['response'] = 'ok'
         ok_response['variable_name'] = var_name
@@ -469,7 +488,8 @@ def send_variable_is_set(message):
 def send_variable_type(message):
     if 'variable_name' in message:
         var_name = message['variable_name']
-        var_value = get_variable(var_name)
+        env_name = message.get('env_name') or 'default_env'
+        var_value = get_variable(env_name, var_name)
         if var_value is None:
             ack_command_err('variable ' + var_name + ' is not set!')
         else:
@@ -499,13 +519,17 @@ def send_variable_value(message):
         ack_command_err('send variable value message does not contain an '
                         'encoding field')
 
-
+    
 def send_variable_list(message):
+    env_name = message.get('env_name', 'default_env')
+    env = get_env(env_name)
+    
     variables = []
-    for key, value in dict(_global_env).items():
+    for key, value in dict(env).items():
+        if key == '__builtins__':
+            continue
         variable_type = type(value).__name__
-        if not (
-                            variable_type == 'classob' or variable_type == 'module' or variable_type == 'function'):
+        if not (variable_type == 'classob' or variable_type == 'module' or variable_type == 'function'):
             variables.append({'name': key, 'type': variable_type})
     ok_response = {}
     ok_response['response'] = 'ok'
@@ -551,7 +575,8 @@ def image_as_encoded_string(value):
 def send_image_as_png(message):
     if 'variable_name' in message:
         var_name = message['variable_name']
-        image = get_variable(var_name)
+        env_name = message.get('env_name') or 'default_env'
+        image = get_variable(env_name, var_name)
         if image is not None:
             if type(image) is plt.Figure:
                 ok_response = {}
@@ -562,7 +587,7 @@ def send_image_as_png(message):
                 encoding = 'base64'
                 ok_response['encoding'] = encoding
                 ok_response['image_data'] = image_as_encoded_string(image)
-                if message_debug(message) == True:
+                if message_debug(message):
                     print(
                         'Sending ' + var_name + ' base64 encoded as png bytes')
                 send_response(ok_response, True)
@@ -579,7 +604,8 @@ def send_image_as_png(message):
 def send_encoded_variable_value(message):
     if 'variable_name' in message:
         var_name = message['variable_name']
-        object = get_variable(var_name)
+        env_name = message.get('env_name') or 'default_env'
+        object = get_variable(env_name, var_name)
         if object is not None:
             encoding = message['variable_encoding']
             encoded_object = None
@@ -596,7 +622,7 @@ def send_encoded_variable_value(message):
             ok_response['variable_name'] = var_name
             ok_response['variable_encoding'] = encoding
             ok_response['variable_value'] = encoded_object
-            if message_debug(message) == True:
+            if message_debug(message):
                 print(
                     'Sending ' + encoding + ' value for var ' + var_name + "\n")
 
@@ -618,6 +644,8 @@ def receive_variable_value(message):
 
 
 def receive_pickled_variable_value(message):
+    env_name = message.get('env_name', 'default_env')
+    env = get_env(env_name)
     if 'variable_name' in message and 'variable_value' in message:
         var_name = message['variable_name']
 
@@ -627,23 +655,10 @@ def receive_pickled_variable_value(message):
         if _global_python3:
             pickled_var_value = base64_decode(pickled_var_value)
         var_value = pickle.loads(pickled_var_value)
-        _global_env[var_name] = var_value
+        env[var_name] = var_value
         ack_command_ok()
     else:
         ack_command_err('receive pickled variable value does not contain a variable_name '
                         'and/or variable_value entry')
 
-
-def is_json(json_data):
-    try:
-        json_object = json.loads(json_data)
-    except:
-        return False
-
-import traceback
-try:
-    runServer()
-except Exception as e:
-    with open('/tmp/hop_server_fatal_crash.log', 'w', encoding='utf-8') as f:
-        f.write(traceback.format_exc())
-    raise
+runServer()

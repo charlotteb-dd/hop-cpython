@@ -22,3 +22,4 @@ sample/*.sklearn
 hop-cpython-env/
 sample/*.hpl
 __pycache__/
+.pydevproject

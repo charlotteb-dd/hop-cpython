@@ -209,7 +209,7 @@ public class ServerUtils {
    * @return true if the named variable is set in python
    * @throws HopException if a problem occurs
    */
-  @SuppressWarnings( "unchecked" ) protected static boolean checkIfPythonVariableIsSet( ILogChannel log, String varName,
+  @SuppressWarnings( "unchecked" ) protected static boolean checkIfPythonVariableIsSet(String envName, ILogChannel log, String varName,
       InputStream inputStream, OutputStream outputStream ) throws HopException {
 
     boolean debug = log == null || log.isDebug();
@@ -218,6 +218,7 @@ public class ServerUtils {
     command.put( COMMAND_KEY, VARIABLE_IS_SET_KEY );
     command.put( VARIABLE_NAME_KEY, varName );
     command.put( DEBUG_KEY, debug );
+    command.put( "env_name", envName != null ? envName : "default_env" );
 
     if ( inputStream != null && outputStream != null ) {
       try {
@@ -331,7 +332,7 @@ public class ServerUtils {
    * @return the variable value
    * @throws HopException if a problem occurs
    */
-  @SuppressWarnings( "unchecked" ) protected static String receivePickledVariableValue( String varName,
+  @SuppressWarnings( "unchecked" ) protected static String receivePickledVariableValue(String envName, String varName,
       OutputStream outputStream, InputStream inputStream, boolean plainString, ILogChannel log ) throws HopException {
 
     boolean debug = log == null || log.isDebug();
@@ -342,6 +343,7 @@ public class ServerUtils {
     command.put( VARIABLE_NAME_KEY, varName );
     command.put( VARIABLE_ENCODING_KEY, plainString ? STRING_ENCODING_KEY : PICKLED_ENCODING_KEY );
     command.put( DEBUG_KEY, debug );
+    command.put( "env_name", envName != null ? envName : "default_env" );
 
     if ( inputStream != null && outputStream != null ) {
       try {
@@ -388,7 +390,7 @@ public class ServerUtils {
    * @return a BufferedImage
    * @throws HopException if a problem occurs
    */
-  @SuppressWarnings( "unchecked" ) protected static BufferedImage getPNGImageFromPython( String varName,
+  @SuppressWarnings( "unchecked" ) protected static BufferedImage getPNGImageFromPython(String envName, String varName,
       OutputStream outputStream, InputStream inputStream, ILogChannel log ) throws HopException {
 
     boolean debug = log == null || log.isDebug();
@@ -397,7 +399,8 @@ public class ServerUtils {
     command.put( COMMAND_KEY, GET_IMAGE_KEY );
     command.put( VARIABLE_NAME_KEY, varName );
     command.put( DEBUG_KEY, debug );
-
+    command.put( "env_name", envName != null ? envName : "default_env" );
+    
     if ( inputStream != null && outputStream != null ) {
       try {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -461,7 +464,7 @@ public class ServerUtils {
    * script execution
    * @throws HopException if a problem occurs
    */
-  @SuppressWarnings( "unchecked" ) protected static List<String> executeUserScript( String script,
+  @SuppressWarnings( "unchecked" ) protected static List<String> executeUserScript( String envName, String script,
       OutputStream outputStream, InputStream inputStream, ILogChannel log ) throws HopException {
     if ( !script.endsWith( "\n" ) ) {
       script += "\n";
@@ -474,6 +477,7 @@ public class ServerUtils {
     command.put( "command", "execute_script" );
     command.put( "script", script );
     command.put( "debug", debug );
+    command.put( "env_name", envName != null ? envName : "default_env" );
     if ( inputStream != null && outputStream != null ) {
       try {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -537,7 +541,8 @@ public class ServerUtils {
    * @param outputStream the output stream to talk to the server on
    * @throws HopException if a problem occurs
    */
-  protected static void sendRowsToPandasDataFrame( ILogChannel log, IRowMeta meta, List<Object[]> rows,
+  // TODO: ,xks
+  protected static void sendRowsToPandasDataFrame( String envName, ILogChannel log, IRowMeta meta, List<Object[]> rows,
       String frameName, OutputStream outputStream, InputStream inputStream ) throws HopException {
     ObjectMapper mapper = new ObjectMapper();
 
@@ -548,7 +553,8 @@ public class ServerUtils {
     command.put( NUM_ROWS_KEY, rows.size() );
     command.put( ROW_META_KEY, metaData );
     command.put( DEBUG_KEY, debug );
-
+    command.put( "env_name", envName != null ? envName : "default_env" );
+    
     boolean needsBase64 = (boolean) metaData.get( BASE64_ENCODING_KEY );
     command.put( BASE64_ENCODING_KEY, needsBase64 );
     metaData.remove( BASE64_ENCODING_KEY );
@@ -611,7 +617,7 @@ public class ServerUtils {
    * @return the data frame converted to rows along with its associated row metadata
    * @throws HopException if a problem occurs
    */
-  @SuppressWarnings( "unchecked" ) protected static RowMetaAndRows receiveRowsFromPandasDataFrame( ILogChannel log,
+  @SuppressWarnings( "unchecked" ) protected static RowMetaAndRows receiveRowsFromPandasDataFrame( String envName, ILogChannel log,
       String frameName, boolean includeRowIndex, OutputStream outputStream, InputStream inputStream )
       throws HopException {
 
@@ -622,6 +628,7 @@ public class ServerUtils {
     command.put( FRAME_NAME_KEY, frameName );
     command.put( FRAME_INCLUDE_ROW_INDEX, includeRowIndex );
     command.put( DEBUG_KEY, debug );
+    command.put( "env_name", envName != null ? envName : "default_env" );
 
     RowMetaAndRows result = null;
     if ( inputStream != null && outputStream != null ) {
@@ -1177,7 +1184,7 @@ public class ServerUtils {
    * @return the std out and err strings as a two element list
    * @throws HopException if a problem occurs
    */
-  @SuppressWarnings( "unchecked" ) protected static List<String> receiveDebugBuffer( OutputStream outputStream,
+  @SuppressWarnings( "unchecked" ) protected static List<String> receiveDebugBuffer(String envName, OutputStream outputStream,
       InputStream inputStream, ILogChannel log ) throws HopException {
     List<String> stdOutStdErr = new ArrayList<String>();
 
@@ -1185,6 +1192,7 @@ public class ServerUtils {
     ObjectMapper mapper = new ObjectMapper();
     Map<String, Object> command = new HashMap<String, Object>();
     command.put( "command", "get_debug_buffer" );
+    command.put( "env_name", envName != null ? envName : "default_env" );
 
     if ( inputStream != null && outputStream != null ) {
       try {
@@ -1228,7 +1236,7 @@ public class ServerUtils {
    * @return the type of the variable in python
    * @throws HopException if a problem occurs
    */
-  @SuppressWarnings( "unchecked" ) protected static PythonVariableType getPythonVariableType( String varName,
+  @SuppressWarnings( "unchecked" ) protected static PythonVariableType getPythonVariableType( String envName, String varName,
       OutputStream outputStream, InputStream inputStream, ILogChannel log ) throws HopException {
 
     boolean debug = log == null || log.isDebug();
@@ -1237,6 +1245,8 @@ public class ServerUtils {
     command.put( COMMAND_KEY, GET_VARIABLE_TYPE_KEY );
     command.put( VARIABLE_NAME_KEY, varName );
     command.put( DEBUG_KEY, debug );
+    command.put( "env_name", envName != null ? envName : "default_env" );
+    
     if ( inputStream != null && outputStream != null ) {
       try {
         if ( debug ) {
@@ -1335,7 +1345,7 @@ public class ServerUtils {
    * @param inputStream  the input stream to read from
    * @throws HopException if a problem occurs
    */
-  protected static void sendRowsToPandasDataFrameArrow( ILogChannel log, IRowMeta meta, List<Object[]> rows,
+  protected static void sendRowsToPandasDataFrameArrow(String envName, ILogChannel log, IRowMeta meta, List<Object[]> rows,
       String frameName, OutputStream outputStream, InputStream inputStream ) throws HopException {
     ObjectMapper mapper = new ObjectMapper();
 
@@ -1347,6 +1357,7 @@ public class ServerUtils {
     command.put( ROW_META_KEY, metaData );
     command.put( DEBUG_KEY, debug );
     command.put( "use_arrow", true );
+    command.put( "env_name", envName != null ? envName : "default_env" );
 
     if ( inputStream != null && outputStream != null ) {
       try {
@@ -1400,7 +1411,7 @@ public class ServerUtils {
    * @throws HopException if a problem occurs
    */
   @SuppressWarnings( "unchecked" ) 
-  protected static RowMetaAndRows receiveRowsFromPandasDataFrameArrow( ILogChannel log,
+  protected static RowMetaAndRows receiveRowsFromPandasDataFrameArrow(String envName, ILogChannel log,
       String frameName, boolean includeRowIndex, OutputStream outputStream, InputStream inputStream )
       throws HopException {
 
@@ -1411,6 +1422,7 @@ public class ServerUtils {
     command.put( FRAME_INCLUDE_ROW_INDEX, includeRowIndex );
     command.put( DEBUG_KEY, debug );
     command.put( "use_arrow", true );
+    command.put( "env_name", envName != null ? envName : "default_env" );
 
     RowMetaAndRows result = null;
 
