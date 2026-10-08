@@ -25,6 +25,7 @@ package org.phalanxdev.python;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.io.IOUtils;
 
@@ -135,7 +136,7 @@ public class PythonSession {
 	/**
 	 * For locking
 	 */
-	protected SessionMutex mutex = new SessionMutex();
+	protected final ReentrantLock sessionLock = new ReentrantLock(true);
 
 	/**
 	 * Server socket
@@ -672,12 +673,10 @@ public class PythonSession {
 	 * @throws SessionException if python is not available
 	 */
 	private synchronized PythonSession getSession(Object requester) throws SessionException {
-		if (sessionHolder == requester) {
-			return this;
-		}
-
-		mutex.safeLock();
+		sessionLock.lock();
+		
 		sessionHolder = requester;
+		
 		return this;
 	}
 
@@ -687,11 +686,14 @@ public class PythonSession {
 	 * @param requester the requesting object
 	 */
 	private void dropSession(Object requester) {
-		if (requester == sessionHolder) {
-			sessionHolder = null;
-			mutex.unlock();
+		if (sessionLock.isHeldByCurrentThread()) {
+			if (sessionHolder == requester) {
+				sessionHolder = null;
+			}
+			sessionLock.unlock();
 		}
 	}
+	
 
 	/**
 	 * Starts the server socket.
