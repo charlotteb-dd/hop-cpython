@@ -25,6 +25,9 @@ import traceback
 import pandas as pd
 import matplotlib.pyplot as plt
 import csv
+from io import StringIO
+from io import BytesIO
+import pickle
 
 # Try to import pyarrow for Arrow support
 _global_arrow_available = False
@@ -35,21 +38,7 @@ try:
 except ImportError:
     pass
 
-_global_python3 = sys.version_info >= (3, 0)
 
-if _global_python3:
-    from io import StringIO
-    from io import BytesIO
-else:
-    try:
-        from cStringIO import StringIO
-    except Exception:
-        from StringIO import StringIO
-
-try:
-    import cPickle as pickle
-except Exception:
-    import pickle
 
 _global_connection = None
 _global_use_arrow = False  # Flag to control Arrow usage
@@ -65,8 +54,6 @@ def get_env(env_name):
         _isolated_envs[env_name] = {'__builtins__': __builtins__}
     return _isolated_envs[env_name]
 
-# _global_std_out = StringIO()
-# _global_std_err = StringIO()
 sys.stdout = StringIO()
 sys.stderr = StringIO()
 
@@ -271,9 +258,7 @@ def receive_rows(message):
                 # Encoding to base64 on the Java side, then decoding base64 and then
                 # to utf-8 on the python side seems to rectify this. Due to the overhead of base64, we only
                 # do this when non-ascii characters are detected.
-                csv_data = base64_decode(csv_data)
-                if _global_python3 is True:
-                    csv_data = csv_data.decode('utf-8', 'ignore')
+                csv_data = base64_decode(csv_data).decode('utf-8', 'ignore')
 
             frame = pd.read_csv(StringIO(csv_data), na_values='?',
                                 quotechar='\'', escapechar='\\',
@@ -334,9 +319,7 @@ def frame_to_fields_list(frame, include_index):
     fields = []
     if include_index:
         # add the index as a field
-        # Python 3 returns the name of an index. Python 2 returns True if the
-        # index has a name, or None otherwise
-        if _global_python3 and frame.index.name is not None:
+        if frame.index.name is not None:
             name = frame.index.name
         else:
             name = "index"
@@ -360,55 +343,32 @@ def frame_to_fields_list(frame, include_index):
 
 
 def send_response(response, isJson):
-    if isJson is True:
+    if isJson:
         response = json.dumps(response)
 
-    if _global_python3 is True:
-        response_bytes = response.encode('utf-8')
-        _global_connection.sendall(struct.pack('>L', len(response_bytes)))
-        _global_connection.sendall(response_bytes)
-    else:
-        # For Python 2, ensure we're sending the byte length, not string length
-        if isinstance(response, unicode):
-            response_bytes = response.encode('utf-8')
-        else:
-            # Ensure it's encoded as UTF-8 bytes
-            response_bytes = response.encode('utf-8') if isinstance(response, str) else response
-        _global_connection.sendall(struct.pack('>L', len(response_bytes)))
-        _global_connection.sendall(response_bytes)
+    response_bytes = response.encode('utf-8')
+    _global_connection.sendall(struct.pack('>L', len(response_bytes)))
+    _global_connection.sendall(response_bytes)
 
 def receive_message(isJson):
-    size = 0
-    length = bytearray() if _global_python3 else ''
+    length = bytearray()
     while len(length) < 4:
         chunk = _global_connection.recv(4 - len(length))
         if not chunk:
             sys.exit(0) # Connection closed
         length += chunk
-    #length += _global_connection.recv(4);
 
     size = struct.unpack('>L', length)[0]
 
-    #data += _global_connection.recv(size);
-            
-    if _global_python3 is True:
-        data_bytes = bytearray()
-        while len(data_bytes) < size:
-            chunk = _global_connection.recv(size - len(data_bytes))
-            if not chunk:
-                sys.exit(0)
-            data_bytes += chunk
+    data_bytes = bytearray()
+    while len(data_bytes) < size:
+        chunk = _global_connection.recv(size - len(data_bytes))
+        if not chunk:
+            sys.exit(0)
+        data_bytes += chunk
         
-        # Decode the fully assembled byte array as UTF-8
-        data = data_bytes.decode('utf-8')
-    else:
-        data = ''
-        while len(data) < size:
-            chunk = _global_connection.recv(size - len(data))
-            if not chunk:
-                sys.exit(0)
-            data += chunk
-    if isJson is True:
+    data = data_bytes.decode('utf-8')
+    if isJson:
         return json.loads(data)
     return data
 
@@ -519,7 +479,6 @@ def send_variable_value(message):
         ack_command_err('send variable value message does not contain an '
                         'encoding field')
 
-    
 def send_variable_list(message):
     env_name = message.get('env_name', 'default_env')
     env = get_env(env_name)
@@ -529,46 +488,28 @@ def send_variable_list(message):
         if key == '__builtins__':
             continue
         variable_type = type(value).__name__
-        if not (variable_type == 'classob' or variable_type == 'module' or variable_type == 'function'):
+        if variable_type not in {'type', 'module', 'function'}:
             variables.append({'name': key, 'type': variable_type})
     ok_response = {}
     ok_response['response'] = 'ok'
     ok_response['variable_list'] = variables
     send_response(ok_response, True)
 
-
 def base64_encode(value):
-    # encode to base 64 bytes
-    b64 = base64.b64encode(value)
-    # get it as a string
-    b64s = b64
-    if _global_python3 is True:
-        b64s = b64.decode('utf8')
-    return b64s
+    return base64.b64encode(value).decode('utf-8')
 
 
 def base64_decode(value):
-    b64b = value
-    if _global_python3 is True:
-        # from string to bytes
-        b64b = value.encode()
-    # back to non-base64 bytes
-    bytes = base64.b64decode(b64b)
-    return bytes
+    return base64.b64decode(value.encode('utf-8'))
 
 
 def image_as_encoded_string(value):
     # return image as png data encoded in a string.
     # assumes image is a matplotlib.figure.Figure
     encoded = None
-    if _global_python3:
-        sio = BytesIO()
-        value.savefig(sio, format='png')
-        encoded = base64_encode(sio.getvalue())
-    else:
-        sio = StringIO()
-        value.savefig(sio, format='png')
-        encoded = base64_encode(sio.getvalue())
+    sio = BytesIO()
+    value.savefig(sio, format='png')
+    encoded = base64_encode(sio.getvalue())
     return encoded
 
 
@@ -583,7 +524,6 @@ def send_image_as_png(message):
                 ok_response['response'] = 'ok'
                 ok_response['variable_name'] = var_name
                 # encoding = 'plain'
-                # if _global_python3 is True:
                 encoding = 'base64'
                 ok_response['encoding'] = encoding
                 ok_response['image_data'] = image_as_encoded_string(image)
@@ -600,38 +540,42 @@ def send_image_as_png(message):
         ack_command_err(
             'get image json message does not contain a variable_name entry!')
 
-
 def send_encoded_variable_value(message):
-    if 'variable_name' in message:
-        var_name = message['variable_name']
-        env_name = message.get('env_name') or 'default_env'
-        object = get_variable(env_name, var_name)
-        if object is not None:
-            encoding = message['variable_encoding']
-            encoded_object = None
-            if encoding == 'pickled':
-                encoded_object = pickle.dumps(object)
-                if _global_python3 is True:
-                    encoded_object = base64_encode(encoded_object)
-            elif encoding == 'json':
-                encoded_object = object  # the whole response gets serialized to json
-            elif encoding == 'string':
-                encoded_object = str(object)
-            ok_response = {}
-            ok_response['response'] = 'ok'
-            ok_response['variable_name'] = var_name
-            ok_response['variable_encoding'] = encoding
-            ok_response['variable_value'] = encoded_object
-            if message_debug(message):
-                print(
-                    'Sending ' + encoding + ' value for var ' + var_name + "\n")
+    if 'variable_name' not in message:
+        ack_command_err('get variable value json message does not contain a variable_name entry!')
+        return
 
-            send_response(ok_response, True)
-        else:
-            ack_command_err(var_name + ' does not exist!')
+    var_name = message['variable_name']
+    env_name = message.get('env_name', 'default_env')
+    
+    obj = get_variable(env_name, var_name)
+    if obj is None:
+        ack_command_err(var_name + ' does not exist!')
+        return
+
+    encoding = message['variable_encoding']
+    
+    if encoding == 'pickled':
+        # Always base64 encode the pickled bytes for Python 3
+        encoded_object = base64_encode(pickle.dumps(obj))
+    elif encoding == 'json':
+        encoded_object = obj  # the whole response gets serialized to json
+    elif encoding == 'string':
+        encoded_object = str(obj)
     else:
-        ack_command_err(
-            'get variable value json message does not contain a variable_name entry!')
+        encoded_object = None
+
+    ok_response = {
+        'response': 'ok',
+        'variable_name': var_name,
+        'variable_encoding': encoding,
+        'variable_value': encoded_object
+    }
+    
+    if message_debug(message):
+        print(f"Sending {encoding} value for var {var_name}\n")
+
+    send_response(ok_response, True)
 
 
 def receive_variable_value(message):
@@ -649,11 +593,8 @@ def receive_pickled_variable_value(message):
     if 'variable_name' in message and 'variable_value' in message:
         var_name = message['variable_name']
 
-        pickled_var_value = message['variable_value']
-        # print("Just before de-pickling")
-        # print(pickled_var_value)
-        if _global_python3:
-            pickled_var_value = base64_decode(pickled_var_value)
+        pickled_var_value = base64_decode(message['variable_value'])
+
         var_value = pickle.loads(pickled_var_value)
         env[var_name] = var_value
         ack_command_ok()
