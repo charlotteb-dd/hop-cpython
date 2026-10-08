@@ -43,6 +43,9 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -288,53 +291,41 @@ public class PythonSession {
 		}
 
 		if (!s_attemptedScriptInstall) {
-
-			ClassLoader loader = PythonSession.class.getClassLoader();
-			InputStream in = loader.getResourceAsStream("py/pyCheck.py");
-			if (in == null) {
-				throw new IOException("Unable to read the pyCheck.py script as a resource");
-			}
-
-			String tmpDir = System.getProperty("java.io.tmpdir");
-			// System.err.println( "******* System tmp dir: " + tmpDir );
-			File tempDir = new File(tmpDir);
-			String pyCheckDest = tmpDir + File.separator + "pyCheck.py";
-			String pyServerDest = tmpDir + File.separator + "pyServer.py";
-
-			PrintWriter outW = null;
-			BufferedReader inR = null;
 			try {
-				outW = new PrintWriter(new BufferedWriter(new FileWriter(pyCheckDest)));
-				inR = new BufferedReader(new InputStreamReader(in));
-				String line;
-				while ((line = inR.readLine()) != null) {
-					outW.println(line);
-				}
-				outW.flush();
-				outW.close();
-				inR.close();
+				Path secureTmpDir = Files.createTempDirectory("hop_cpython_scripts_");
+				File tempDirFile = secureTmpDir.toFile();
+				
+				tempDirFile.deleteOnExit(); 
 
-				in = loader.getResourceAsStream("py/pyServer.py");
-				outW = new PrintWriter(new BufferedWriter(new FileWriter(pyServerDest)));
-				inR = new BufferedReader(new InputStreamReader(in));
-				while ((line = inR.readLine()) != null) {
-					outW.println(line);
+				ClassLoader loader = PythonSession.class.getClassLoader();
+
+				Path pyCheckDest = secureTmpDir.resolve("pyCheck.py");
+				try (InputStream in = loader.getResourceAsStream("py/pyCheck.py")) {
+					if (in == null) {
+						throw new IOException("Unable to read the pyCheck.py script as a resource");
+					}
+					Files.copy(in, pyCheckDest, StandardCopyOption.REPLACE_EXISTING);
+					pyCheckDest.toFile().deleteOnExit();
 				}
-			} catch (IOException ex) {
-				ex.printStackTrace();
-				throw ex;
-			} finally {
-				if (outW != null) {
-					outW.flush();
-					outW.close();
+
+				Path pyServerDest = secureTmpDir.resolve("pyServer.py");
+				try (InputStream in = loader.getResourceAsStream("py/pyServer.py")) {
+					if (in == null) {
+						throw new IOException("Unable to read the pyServer.py script as a resource");
+					}
+					Files.copy(in, pyServerDest, StandardCopyOption.REPLACE_EXISTING);
+					pyServerDest.toFile().deleteOnExit();
 				}
-				if (inR != null) {
-					inR.close();
-				}
+
 				s_attemptedScriptInstall = true;
+				s_osTmpDir = secureTmpDir.toAbsolutePath().toString();
+				
+				return tempDirFile;
+
+			} catch (IOException ex) {
+				s_attemptedScriptInstall = true;
+				throw ex;
 			}
-			s_osTmpDir = tmpDir;
-			return tempDir;
 		} else {
 			throw new IOException("Unable to install python scripts");
 		}
