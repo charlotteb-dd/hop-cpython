@@ -691,67 +691,14 @@ public class ServerUtils {
    * Convert csv data to rows
    *
    * @param csv        csv data in a String
-   * @param kettleMeta metadata for the fields in the csv
+   * @param rowMeta metadata for the fields in the csv
    * @param numRows    the number of rows of data
    * @return rows of kettle data
    * @throws IOException if a problem occurs
    */
-  protected static RowMetaAndRows old_csvToRows( String csv, IRowMeta kettleMeta, int numRows ) throws IOException {
-    RowMetaAndRows rowMetaAndRows = new RowMetaAndRows();
-    rowMetaAndRows.rowMeta = kettleMeta;
-    rowMetaAndRows.rows = new Object[numRows][];
-    int count = 0;
-    // use a foreign line ending so that we can still have cr/lf in text cells
-    for ( String line : csv.split( "#\\|\\|#" ) ) {
-      // stash cr and lf so that they don't break the parser
-      line = line.replace( "\n", "<lf>" ).replace( "\r", "<cr>" );
-      String[] parsed = PARSER.parseLine( line );
-
-      Object[] row = new Object[kettleMeta.size()];
-      for ( int i = 0; i < kettleMeta.size(); i++ ) {
-        if ( parsed[i].equals( MISSING_VALUE ) ) {
-          continue;
-        }
-        switch ( kettleMeta.getValueMeta( i ).getType() ) {
-          case IValueMeta.TYPE_NUMBER:
-            try {
-              row[i] = Double.valueOf( parsed[i] );
-            } catch ( NumberFormatException ex ) {
-              throw new IOException( ex );
-            }
-            break;
-          case IValueMeta.TYPE_INTEGER:
-        	  try {
-        		  row[i] = Long.valueOf(parsed[i]);
-        	  } catch (NumberFormatException ex) {
-        		  throw new IOException(ex);
-        	  }
-        	  break;
-          case IValueMeta.TYPE_BOOLEAN:
-            row[i] = parsed[i].equalsIgnoreCase( "true" );
-            break;
-          case IValueMeta.TYPE_DATE:
-            try {
-            	LocalDateTime localDateTime = LocalDateTime.parse( parsed[i], DATE_FORMAT );
-                
-                row[i] = Date.from( localDateTime.atZone( ZoneId.systemDefault() ).toInstant() );
-            } catch ( Exception ex ) {
-              throw new IOException( ex );
-            }
-            break;
-          default:
-            // unpack stashed cr lf 
-            row[i] = parsed[i].replace( "<lf>", "\n" ).replace( "<cr>", "\r" );
-        }
-      }
-      rowMetaAndRows.rows[count++] = row;
-    }
-
-    return rowMetaAndRows;
-  }
-  protected static RowMetaAndRows csvToRows(String csv, IRowMeta kettleMeta, int numRows) throws IOException {
+  protected static RowMetaAndRows csvToRows(String csv, IRowMeta rowMeta, int numRows) throws IOException {
 	    RowMetaAndRows rowMetaAndRows = new RowMetaAndRows();
-	    rowMetaAndRows.rowMeta = kettleMeta;
+	    rowMetaAndRows.rowMeta = rowMeta;
 	    rowMetaAndRows.rows = new Object[numRows][];
 	    
 	    int count = 0;
@@ -763,9 +710,9 @@ public class ServerUtils {
 
 	      line = line.replace("\n", "<lf>").replace("\r", "<cr>");
 	      String[] parsed = PARSER.parseLine(line);
-	      Object[] row = new Object[kettleMeta.size()];
+	      Object[] row = new Object[rowMeta.size()];
 
-	      for (int i = 0; i < kettleMeta.size(); i++) {
+	      for (int i = 0; i < rowMeta.size(); i++) {
 	        String rawValue = parsed[i];
 
 	        if (MISSING_VALUE.equals(rawValue)) {
@@ -773,9 +720,9 @@ public class ServerUtils {
 	        }
 
 	        try {
-	          row[i] = parseValueAsHopType(rawValue, kettleMeta.getValueMeta(i).getType());
+	          row[i] = parseValueAsHopType(rawValue, rowMeta.getValueMeta(i).getType());
 	        } catch (Exception ex) {
-	          String colName = kettleMeta.getValueMeta(i).getName();
+	          String colName = rowMeta.getValueMeta(i).getName();
 	          throw new IOException(String.format(
 	              "Failed to parse column '%s' at row %d. Received value: '%s'", 
 	              colName, count + 1, rawValue), ex);
