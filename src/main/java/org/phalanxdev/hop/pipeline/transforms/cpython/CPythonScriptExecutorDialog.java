@@ -1004,10 +1004,7 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 		meta.setConfigSelectionIndex(wConfigSelection.getSelectionIndex());
 		meta.setConfigName(wConfigSelection.getText());
 
-		// incoming stream/frame name data from table
 		int numNonEmpty = wtvInputFrames.nrNonEmpty();
-//    List<String> frameNames = new ArrayList<String>();
-//    List<String> stepNames = new ArrayList<String>();
 		List<CPythonInputFrame> inputFrames = new ArrayList<>();
 		meta.clearStepIOMeta();
 		for (int i = 0; i < numNonEmpty; i++) {
@@ -1048,7 +1045,6 @@ public class CPythonScriptExecutorDialog extends BaseTransformDialog implements 
 		wstcScriptEditor.setEnabled(!wbLoadScriptFile.getSelection());
 		if (wbLoadScriptFile.getSelection()) {
 			wtvScriptLocation.setEditable(true);
-			// Handle both StyledTextComp and ScriptStyledTextComp cases
 			if (wstcScriptEditor instanceof StyledTextComp) {
 				((StyledTextComp) wstcScriptEditor).getTextWidget()
 						.setBackground(GuiResource.getInstance().getColorDemoGray());
