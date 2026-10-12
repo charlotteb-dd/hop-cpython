@@ -24,6 +24,7 @@ package org.phalanxdev.hop.pipeline.transforms.cpython;
 
 import org.apache.commons.vfs2.FileObject;
 
+import java.awt.font.TransformAttribute;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -735,6 +736,7 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 		PythonSession session;
 		try {
 			session = PythonSession.acquireSession(requester);
+			//TODO: check health here also
 		} catch (SessionException ex) {
 			throw new HopException(ex);
 		}
@@ -828,10 +830,21 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 		PythonSession session = null;
 		try {
 			session = PythonSession.acquireSession(pyCommand, sID, requester);
+			if (session != null && !session.isSessionAlive()) {
+	            log.logBasic("Detected dead Python session during acquire. Resetting...");
+	            session.resetDeadSession();
+	            session = PythonSession.acquireSession(pyCommand, sID, requester); // Re-crée un serveur tout neuf
+			}
 		} catch (SessionException e) {
 			throw new HopException(e);
 		}
 		session.setLog(log);
+		
+		if (requester instanceof ITransform transform) {
+	        session.setEnvName(transform.getTransformName());
+	    } else if (requester != null) {
+	        session.setEnvName(requester.toString());
+	    }
 		return session;
 	}
 }

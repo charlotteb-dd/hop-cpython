@@ -177,8 +177,8 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 	public boolean init() {
 		if (super.init()) {
 			try {
-				if (org.apache.hop.core.util.Utils.isEmpty(meta.getScript())
-						&& org.apache.hop.core.util.Utils.isEmpty(meta.getLoadScriptFile())) {
+				if (Utils.isEmpty(meta.getScript())
+						&& Utils.isEmpty(meta.getLoadScriptFile())) {
 					throw new HopException(BaseMessages.getString(PKG, "CPythonScriptExecutor.Error.NoScriptProvided"));
 				}
 
@@ -194,7 +194,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 					// loading from a file overrides any user-supplied script
 					if (meta.isLoadScriptAtRuntime()) {
 						String scriptFile = resolve(meta.getLoadScriptFile());
-						if (org.apache.hop.core.util.Utils.isEmpty(scriptFile)) {
+						if (Utils.isEmpty(scriptFile)) {
 							throw new HopException(BaseMessages.getString(PKG,
 									"CPythonScriptExecutor.Error.NoScriptFileNameProvided"));
 						}
@@ -208,32 +208,40 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 				if (!data.includeInputAsOutput) {
 					data.includeInputAsOutput = meta.isIncludeInputAsOutput();
 				}
-
+				
+				
 				String resolvedConfigName = resolve(meta.getConfigName());
+				if (Utils.isEmpty(resolvedConfigName)) {
+					throw new HopException(BaseMessages.getString(PKG, "CPythonScriptExecutor.Error.NoPythonConfigSpecified"));
+				}
+				
 				CPythonConfig config = getMetadataProvider().getSerializer(CPythonConfig.class)
 						.load(resolvedConfigName);
 				
-				if (config != null) {
-					data.pythonCommand = config.getPythonCommand();
-					data.pyPathEntries = config.getPyPathEntries();
-					data.serverID = config.getServerID();
+				if (config == null) {
+					throw new HopException(BaseMessages.getString(PKG, "CPythonScriptExecutor.Error.PythonConfigNotFound", resolvedConfigName));
+				}
+				
+				data.pythonCommand = config.getPythonCommand();
+				data.pyPathEntries = config.getPyPathEntries();
+				data.serverID = config.getServerID();
+				
+                String resolvedPython = resolve(data.pythonCommand);
+				
+				if (Utils.isEmpty(resolvedPython)) {
+					throw new HopException(BaseMessages.getString(PKG, "CPythonScriptExecutor.Error.NoPythonCommandConfigured", resolvedConfigName));
 				}
 				
 				// check python availability
 				CPythonScriptExecutorData.initPython(data.pythonCommand, data.serverID, data.pyPathEntries, this,
 						getLogChannel());
-				String resolvedPython = resolve(data.pythonCommand);
-				
-				if (Utils.isEmpty(resolvedPython)) {
-					resolvedPython = "python";
-				}
 				
 				if (!Utils.isEmpty(meta.getLibraries())) {
 					List<String> requiredLibs = Arrays.asList(meta.getLibraries().trim().split("\\s+"));
 					installTransformLibraries(resolvedPython, requiredLibs);
 				}
 			} catch (HopException ex) {
-				logError(ex.getMessage(), ex); // $NON-NLS-1$
+				logError(ex.getMessage(), ex);
 
 				return false;
 			}

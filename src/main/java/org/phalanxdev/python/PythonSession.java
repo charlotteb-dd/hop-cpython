@@ -953,7 +953,16 @@ public class PythonSession {
 			boolean debug, ILogChannel log) throws HopException {
 		String key = pythonCommand + (ownerID != null && ownerID.length() > 0 ? ownerID : "");
 
-		if (!pythonServers.containsKey(key)) {
+		if (pythonServers.containsKey(key)) {
+	        PythonSession existingSession = pythonServers.get(key);
+	        if (existingSession == null || !existingSession.isSessionAlive()) {
+	            if (existingSession != null) {
+	                existingSession.resetDeadSession();
+	            } else {
+	                pythonServers.remove(key);
+	            }
+	        }
+	    } else {
 			try {
 				new PythonSession(pythonCommand, ownerID, pathEntries, false, log);
 			} catch (IOException ex) {
@@ -969,6 +978,25 @@ public class PythonSession {
 				|| (envCheckResults.contains("Library ") && envCheckResults.contains("is not available"));
 
 		return !hasErrors;
+	}
+	
+	private boolean isSocketError(Throwable ex) {
+	    while (ex != null) {
+	        if (ex instanceof java.net.SocketException || 
+	            ex instanceof java.io.EOFException || 
+	            ex instanceof java.io.IOException) {
+	            return true;
+	        }
+	        String msg = ex.getMessage();
+	        if (msg != null && (msg.contains("FATAL_SOCKET_DEATH") || 
+	                            msg.contains("Relais brisé") || 
+	                            msg.contains("Broken pipe") || 
+	                            msg.contains("Socket closed"))) {
+	            return true;
+	        }
+	        ex = ex.getCause();
+	    }
+	    return false;
 	}
 
 	/**
@@ -1014,10 +1042,11 @@ public class PythonSession {
 	public void rowsToPythonDataFrame(IRowMeta rowMeta, List<Object[]> rows, String pythonFrameName)
 			throws HopException {
 		try {
+			log.logDebug("sendrowstopandasdataframe with envname = " + envName);
 			ServerUtils.sendRowsToPandasDataFrame(envName, log, rowMeta, rows, pythonFrameName, localSocket.getOutputStream(),
 					localSocket.getInputStream());
 		} catch (Exception ex) {
-			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
+			if (isSocketError(ex)) {
 	            System.err.println("PythonSession catching socket death. Resetting THIS session...");
 	            this.resetDeadSession(); 
 	            throw new HopException("The connection to the Python server was lost. The session has been safely reset for your next run.", ex);
@@ -1038,10 +1067,11 @@ public class PythonSession {
 	 */
 	public RowMetaAndRows rowsFromPythonDataFrame(String frameName, boolean includeRowIndex) throws HopException {
 		try {
+			log.logDebug("receiverowsfrompandasdataframe with envname = " + envName);
 			return ServerUtils.receiveRowsFromPandasDataFrame(envName, log, frameName, includeRowIndex,
 					localSocket.getOutputStream(), localSocket.getInputStream());
 		} catch (Exception ex) {
-			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
+			if (isSocketError(ex)) {
 	            System.err.println("PythonSession catching socket death. Resetting THIS session...");
 	            this.resetDeadSession(); 
 	            throw new HopException("The connection to the Python server was lost. The session has been safely reset for your next run.", ex);
@@ -1063,15 +1093,17 @@ public class PythonSession {
 			throws HopException {
 		try {
 			if (useArrow && arrowAvailable) {
+				log.logDebug("sendrowstopandasdataframearrow with envname = " + envName);
 				ServerUtils.sendRowsToPandasDataFrameArrow(envName, log, rowMeta, rows, pythonFrameName,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			} else {
 				// Fall back to CSV
+				log.logDebug("sendrowstopandasdataframe2 with envname = " + envName);
 				ServerUtils.sendRowsToPandasDataFrame(envName, log, rowMeta, rows, pythonFrameName,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			}
 		} catch (Exception ex) {
-			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
+			if (isSocketError(ex)) {
 	            System.err.println("PythonSession catching socket death. Resetting THIS session...");
 	            this.resetDeadSession(); 
 	            throw new HopException("The connection to the Python server was lost. The session has been safely reset for your next run.", ex);
@@ -1093,15 +1125,17 @@ public class PythonSession {
 			throws HopException {
 		try {
 			if (useArrow && arrowAvailable) {
+				log.logDebug("receiverowsfrompandasdataframearrow with envname = " + envName);
 				return ServerUtils.receiveRowsFromPandasDataFrameArrow(envName, log, frameName, includeRowIndex,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			} else {
 				// Fall back to CSV
+				log.logDebug("receiverowsfrompandasdataframe2 with envname = " + envName);
 				return ServerUtils.receiveRowsFromPandasDataFrame(envName, log, frameName, includeRowIndex,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			}
 		} catch (Exception ex) {
-			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
+			if (isSocketError(ex)) {
 	            System.err.println("PythonSession catching socket death. Resetting THIS session...");
 	            this.resetDeadSession(); 
 	            throw new HopException("The connection to the Python server was lost. The session has been safely reset for your next run.", ex);
@@ -1137,6 +1171,7 @@ public class PythonSession {
 	 */
 	public boolean checkIfPythonVariableIsSet(String pyVarName) throws HopException {
 		try {
+			log.logDebug("checkifpythonvariableisset with envname = " + envName);
 			return ServerUtils.checkIfPythonVariableIsSet(envName, log, pyVarName, localSocket.getInputStream(),
 					localSocket.getOutputStream());
 		} catch (IOException ex) {
@@ -1158,6 +1193,7 @@ public class PythonSession {
 	 */
 	public List<String> getPythonDebugBuffer() throws HopException {
 		try {
+			log.logDebug("receivedebugbuffer with envname = " + envName);
 			return ServerUtils.receiveDebugBuffer(envName, localSocket.getOutputStream(), localSocket.getInputStream(), log);
 		} catch (IOException ex) {
 			throw new HopException(ex);
@@ -1177,6 +1213,7 @@ public class PythonSession {
 	 */
 	public PythonVariableType getPythonVariableType(String varName) throws HopException {
 		try {
+			log.logDebug("getPythonVariableType with envname = " + envName);
 			return ServerUtils.getPythonVariableType(envName, varName, localSocket.getOutputStream(),
 					localSocket.getInputStream(), log);
 		} catch (IOException ex) {
@@ -1194,16 +1231,24 @@ public class PythonSession {
 	 */
 	public List<String> executeScript(String envName, String pyScript) throws HopException {
 		try {
+			log.logDebug("executeuserscript with envname = " + envName);
 			return ServerUtils.executeUserScript(envName, pyScript, localSocket.getOutputStream(), localSocket.getInputStream(),
 					log);
 		} catch (Exception ex) {
-			if (ex.getMessage() != null && ex.getMessage().contains("FATAL_SOCKET_DEATH")) {
-	            System.err.println("PythonSession catching socket death. Resetting THIS session...");
+			if (isSocketError(ex)) {
+	            System.err.println("PythonSession catching socket death. Reseting THIS session...");
 	            this.resetDeadSession(); 
 	            throw new HopException("The connection to the Python server was lost. The session has been safely reset for your next run.", ex);
 	        }
 			throw new HopException(ex);
 		}
+	}
+	
+	public boolean isSessionAlive() {
+	    return localSocket != null && 
+	           !localSocket.isClosed() && 
+	           localSocket.isConnected() && 
+	           !localSocket.isOutputShutdown();
 	}
 
 	/**
@@ -1217,6 +1262,7 @@ public class PythonSession {
 	 */
 	public BufferedImage getImageFromPython(String varName) throws HopException {
 		try {
+			log.logDebug("getPNGImageFromPython with envname = " + envName);
 			return ServerUtils.getPNGImageFromPython(envName, varName, localSocket.getOutputStream(),
 					localSocket.getInputStream(), log);
 		} catch (IOException ex) {
@@ -1233,6 +1279,7 @@ public class PythonSession {
 	 */
 	public String getVariableValueFromPythonAsPlainString(String varName) throws HopException {
 		try {
+			log.logDebug("receivePickledVariableValue with envname = " + envName);
 			return ServerUtils.receivePickledVariableValue(envName, varName, localSocket.getOutputStream(),
 					localSocket.getInputStream(), true, log);
 		} catch (IOException ex) {
@@ -1255,6 +1302,7 @@ public class PythonSession {
 						log.logDebug("Sending shutdown command...");
 					}
 					if (log == null || log.isDebug()) {
+						log.logDebug("receiveDebugBuffer2 with envname = " + envName);
 						List<String> outAndErr = ServerUtils.receiveDebugBuffer(envName, localSocket.getOutputStream(),
 								localSocket.getInputStream(), log);
 						if (outAndErr.get(0).length() > 0) {
@@ -1309,15 +1357,15 @@ public class PythonSession {
 		}
 	}
 
-	public void resetDeadSession() {
-		if (s_sessionSingleton != null) {
-			try {
-				System.err.println("Fatal socket error detected. Forcing Python server reset...");
-				this.shutdown();
-			} catch (Exception e) {
-				// Ignore errors during forced cleanup
-			}
-		}
+	public synchronized void resetDeadSession() {
+	    try {
+	        if (log != null) {
+	            log.logBasic("Fatal socket error detected. Resetting session: " + sessionKey);
+	        } else {
+	            System.err.println("Fatal socket error detected. Resetting session: " + sessionKey);
+	        }
+	        this.shutdown();
+	    } catch (Exception e) {}
 	}
 
 	public static void main(String[] args) {
