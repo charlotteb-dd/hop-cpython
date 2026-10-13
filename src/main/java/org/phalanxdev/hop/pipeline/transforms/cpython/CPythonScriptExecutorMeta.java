@@ -33,7 +33,6 @@ import org.apache.hop.core.row.IValueMeta;
 import org.apache.hop.core.row.RowMeta;
 import org.apache.hop.core.row.value.ValueMetaFactory;
 import org.apache.hop.core.variables.IVariables;
-import org.apache.hop.core.variables.Variable;
 import org.apache.hop.i18n.BaseMessages;
 import org.apache.hop.metadata.api.HopMetadataProperty;
 import org.apache.hop.metadata.api.IHopMetadataProvider;
@@ -101,31 +100,6 @@ public class CPythonScriptExecutorMeta extends BaseTransformMeta<CPythonScriptEx
 	 */
 	@HopMetadataProperty
 	protected String script = BaseMessages.getString(PKG, "CPythonScriptExecutorMeta.InitialScriptText");
-
-//	/**
-//	 * User-supplied path to python executable. If not specified, then we use the
-//	 * default python in the path
-//	 */
-//	@HopMetadataProperty
-//	protected String pythonCommand = "";
-//
-//	/**
-//	 * Optional entries for the PATH, required so that python will execute
-//	 * correctly. Used when user has specified path to python executable. E.g. under
-//	 * windows, Anaconda requires Library/bin to be in the PATH as well as the
-//	 * python executable.
-//	 */
-//	@HopMetadataProperty
-//	protected String pyPathEntries = "";
-//
-//	/**
-//	 * An optional ID for the python server. This plus the path to the executable
-//	 * uniquely identifies a non-default server. Can be used to share a given server
-//	 * instance among several clients, or to ensure that a given client has a
-//	 * dedicated server.
-//	 */
-//	@HopMetadataProperty
-//	protected String serverID = "";
 
 	@HopMetadataProperty
 	protected String libraries = "";

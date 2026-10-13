@@ -31,6 +31,7 @@ import java.util.List;
 
 import org.apache.hop.core.IRowSet;
 import org.apache.hop.core.exception.HopException;
+import org.apache.hop.core.logging.ILogChannel;
 import org.apache.hop.core.row.IRowMeta;
 import org.apache.hop.core.row.IValueMeta;
 import org.apache.hop.core.row.RowMeta;
@@ -128,21 +129,25 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 			return;
 		}
 		
+		ILogChannel log = getLogChannel();
 		List<String> librariesToInstall = libraries;
+		
 		try {
 			librariesToInstall = getMissingLibraries(pythonCommand, libraries);
 			
 			if (librariesToInstall.isEmpty()) {
-				if (getLogChannel().isDebug()) {
-					getLogChannel().logDebug("All required Python libraries are already installed. Skipping pip.");
+				if (log != null && log.isDebug()) {
+					log.logDebug("All required Python libraries are already installed. Skipping pip.");
 				}
 				return;
 			}
 		} catch (Exception e) {
-			getLogChannel().logDebug("Could not verify existing libraries. Falling back to pip install. Error: " + e.getMessage());
+			if (log != null)
+				log.logDebug("Could not verify existing libraries. Falling back to pip install. Error: " + e.getMessage());
 		}
 		try {
-			getLogChannel().logBasic("Checking/Installing required libraries: " + String.join(", ", librariesToInstall));
+			if (log != null)
+				log.logBasic("Checking/Installing required libraries: " + String.join(", ", librariesToInstall));
 
 			List<String> pipCommand = new ArrayList<>();
 			pipCommand.add(pythonCommand);
@@ -156,21 +161,31 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 			Process pipProcess = pipPb.start();
 
 			// Read output to prevent freezing
+			  List<String> processOutput = new ArrayList<>();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					pipProcess.getInputStream(), StandardCharsets.UTF_8));
 			String line;
 			while ((line = reader.readLine()) != null) {
-				if (getLogChannel().isDebug()) {
-					getLogChannel().logDebug("[Pip Install] " + line);
+				processOutput.add(line);
+				if (log != null && log.isDebug()) {
+					log.logDebug("[Pip Install] " + line);
 				}
 			}
 
 			int exitCode = pipProcess.waitFor();
 			if (exitCode != 0) {
-				getLogChannel().logError("Warning: pip install returned exit code " + exitCode);
-			}
+				String fullOutput = String.join("\n", processOutput);
+				if (log != null) {
+					log.logError("Warning: pip install returned exit code " + exitCode);
+			}else {
+                System.err.println("pip install failed with exit code " + exitCode + ":\n" + fullOutput);
+            }}
 		} catch (Exception e) {
-			getLogChannel().logError("Failed to install Python libraries", e);
+			if (log != null)
+				log.logError("Failed to install Python libraries", e);
+			else {
+				e.printStackTrace();
+			}
 		}
 	}
 

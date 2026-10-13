@@ -51,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.hop.core.HopClientEnvironment;
 import org.apache.hop.core.exception.HopException;
 import org.apache.hop.core.logging.ILogChannel;
 import org.apache.hop.core.row.IRowMeta;
@@ -631,7 +632,8 @@ public class PythonSession {
 					|| (envCheckResults.contains("Library ") && envCheckResults.contains("is not available"));
 
 			if (!hasErrors) {
-				log.logDetailed("Python environment check passed. Launching " + pythonCommand
+				if (log != null)
+					log.logDetailed("Python environment check passed. Launching " + pythonCommand
 						+ (serverID != null ? " ID " + serverID : ""));
 				// launch server
 				launchServer(true);
@@ -642,7 +644,8 @@ public class PythonSession {
 					s_pythonEnvCheckResults = envCheckResults;
 				}
 			} else {
-				log.logError("Python environment check failed:\n\n" + envCheckResults);
+				if (log != null)
+					log.logError("Python environment check failed:\n\n" + envCheckResults);
 			}
 		}
 	}
@@ -917,10 +920,13 @@ public class PythonSession {
 		String osType = System.getProperty("os.name");
 		boolean windows = osType != null && osType.toLowerCase().contains("windows");
 
-		log.logDebug("Python command: " + pythonCommand);
+		if (log != null && log.isDebug())
+			log.logDebug("Python command: " + pythonCommand);
 		String path = System.getenv(windows ? "Path" : "PATH");
-		if (path != null && path.length() > 0) {
-			log.logDebug("PATH: " + path);
+		if (log != null && log.isDebug()) {
+			if (path != null && path.length() > 0) {
+				log.logDebug("PATH: " + path);
+			}
 		}
 		try {
 			new PythonSession(pythonCommand, log);
@@ -928,7 +934,7 @@ public class PythonSession {
 			throw new HopException(ex);
 		}
 
-		return s_pythonEnvCheckResults.length() < 5;
+		return s_sessionSingleton != null;
 	}
 
 	/**
@@ -950,7 +956,7 @@ public class PythonSession {
 	 *                      does not exist).
 	 */
 	public static synchronized boolean initSession(String pythonCommand, String ownerID, String pathEntries,
-			boolean debug, ILogChannel log) throws HopException {
+			ILogChannel log) throws HopException {
 		String key = pythonCommand + (ownerID != null && ownerID.length() > 0 ? ownerID : "");
 
 		if (pythonServers.containsKey(key)) {
@@ -1042,7 +1048,8 @@ public class PythonSession {
 	public void rowsToPythonDataFrame(IRowMeta rowMeta, List<Object[]> rows, String pythonFrameName)
 			throws HopException {
 		try {
-			log.logDebug("sendrowstopandasdataframe with envname = " + envName);
+			if (log != null && log.isDebug())
+				log.logDebug("sendrowstopandasdataframe with envname = " + envName);
 			ServerUtils.sendRowsToPandasDataFrame(envName, log, rowMeta, rows, pythonFrameName, localSocket.getOutputStream(),
 					localSocket.getInputStream());
 		} catch (Exception ex) {
@@ -1067,7 +1074,8 @@ public class PythonSession {
 	 */
 	public RowMetaAndRows rowsFromPythonDataFrame(String frameName, boolean includeRowIndex) throws HopException {
 		try {
-			log.logDebug("receiverowsfrompandasdataframe with envname = " + envName);
+			if (log != null && log.isDebug())
+				log.logDebug("receiverowsfrompandasdataframe with envname = " + envName);
 			return ServerUtils.receiveRowsFromPandasDataFrame(envName, log, frameName, includeRowIndex,
 					localSocket.getOutputStream(), localSocket.getInputStream());
 		} catch (Exception ex) {
@@ -1093,12 +1101,14 @@ public class PythonSession {
 			throws HopException {
 		try {
 			if (useArrow && arrowAvailable) {
-				log.logDebug("sendrowstopandasdataframearrow with envname = " + envName);
+				if (log != null && log.isDebug())
+					log.logDebug("sendrowstopandasdataframearrow with envname = " + envName);
 				ServerUtils.sendRowsToPandasDataFrameArrow(envName, log, rowMeta, rows, pythonFrameName,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			} else {
 				// Fall back to CSV
-				log.logDebug("sendrowstopandasdataframe2 with envname = " + envName);
+				if (log != null && log.isDebug())
+					log.logDebug("sendrowstopandasdataframe2 with envname = " + envName);
 				ServerUtils.sendRowsToPandasDataFrame(envName, log, rowMeta, rows, pythonFrameName,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			}
@@ -1125,12 +1135,14 @@ public class PythonSession {
 			throws HopException {
 		try {
 			if (useArrow && arrowAvailable) {
-				log.logDebug("receiverowsfrompandasdataframearrow with envname = " + envName);
+				if (log != null && log.isDebug())
+					log.logDebug("receiverowsfrompandasdataframearrow with envname = " + envName);
 				return ServerUtils.receiveRowsFromPandasDataFrameArrow(envName, log, frameName, includeRowIndex,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			} else {
 				// Fall back to CSV
-				log.logDebug("receiverowsfrompandasdataframe2 with envname = " + envName);
+				if (log != null && log.isDebug())
+					log.logDebug("receiverowsfrompandasdataframe2 with envname = " + envName);
 				return ServerUtils.receiveRowsFromPandasDataFrame(envName, log, frameName, includeRowIndex,
 						localSocket.getOutputStream(), localSocket.getInputStream());
 			}
@@ -1171,7 +1183,8 @@ public class PythonSession {
 	 */
 	public boolean checkIfPythonVariableIsSet(String pyVarName) throws HopException {
 		try {
-			log.logDebug("checkifpythonvariableisset with envname = " + envName);
+			if (log != null && log.isDebug())
+				log.logDebug("checkifpythonvariableisset with envname = " + envName);
 			return ServerUtils.checkIfPythonVariableIsSet(envName, log, pyVarName, localSocket.getInputStream(),
 					localSocket.getOutputStream());
 		} catch (IOException ex) {
@@ -1193,7 +1206,8 @@ public class PythonSession {
 	 */
 	public List<String> getPythonDebugBuffer() throws HopException {
 		try {
-			log.logDebug("receivedebugbuffer with envname = " + envName);
+			if (log != null && log.isDebug())
+				log.logDebug("receivedebugbuffer with envname = " + envName);
 			return ServerUtils.receiveDebugBuffer(envName, localSocket.getOutputStream(), localSocket.getInputStream(), log);
 		} catch (IOException ex) {
 			throw new HopException(ex);
@@ -1213,7 +1227,8 @@ public class PythonSession {
 	 */
 	public PythonVariableType getPythonVariableType(String varName) throws HopException {
 		try {
-			log.logDebug("getPythonVariableType with envname = " + envName);
+			if (log != null && log.isDebug())
+				log.logDebug("getPythonVariableType with envname = " + envName);
 			return ServerUtils.getPythonVariableType(envName, varName, localSocket.getOutputStream(),
 					localSocket.getInputStream(), log);
 		} catch (IOException ex) {
@@ -1231,7 +1246,8 @@ public class PythonSession {
 	 */
 	public List<String> executeScript(String envName, String pyScript) throws HopException {
 		try {
-			log.logDebug("executeuserscript with envname = " + envName);
+			if (log != null && log.isDebug())
+				log.logDebug("executeuserscript with envname = " + envName);
 			return ServerUtils.executeUserScript(envName, pyScript, localSocket.getOutputStream(), localSocket.getInputStream(),
 					log);
 		} catch (Exception ex) {
@@ -1245,7 +1261,10 @@ public class PythonSession {
 	}
 	
 	public boolean isSessionAlive() {
-	    return localSocket != null && 
+	    return !shutdown &&
+	    	   serverProcess != null &&
+	           serverProcess.isAlive() &&
+	    	   localSocket != null && 
 	           !localSocket.isClosed() && 
 	           localSocket.isConnected() && 
 	           !localSocket.isOutputShutdown();
@@ -1262,7 +1281,8 @@ public class PythonSession {
 	 */
 	public BufferedImage getImageFromPython(String varName) throws HopException {
 		try {
-			log.logDebug("getPNGImageFromPython with envname = " + envName);
+			if (log != null && log.isDebug())
+				log.logDebug("getPNGImageFromPython with envname = " + envName);
 			return ServerUtils.getPNGImageFromPython(envName, varName, localSocket.getOutputStream(),
 					localSocket.getInputStream(), log);
 		} catch (IOException ex) {
@@ -1279,7 +1299,8 @@ public class PythonSession {
 	 */
 	public String getVariableValueFromPythonAsPlainString(String varName) throws HopException {
 		try {
-			log.logDebug("receivePickledVariableValue with envname = " + envName);
+			if (log != null && log.isDebug())
+				log.logDebug("receivePickledVariableValue with envname = " + envName);
 			return ServerUtils.receivePickledVariableValue(envName, varName, localSocket.getOutputStream(),
 					localSocket.getInputStream(), true, log);
 		} catch (IOException ex) {
@@ -1302,7 +1323,8 @@ public class PythonSession {
 						log.logDebug("Sending shutdown command...");
 					}
 					if (log == null || log.isDebug()) {
-						log.logDebug("receiveDebugBuffer2 with envname = " + envName);
+						if (log != null)
+							log.logDebug("receiveDebugBuffer2 with envname = " + envName);
 						List<String> outAndErr = ServerUtils.receiveDebugBuffer(envName, localSocket.getOutputStream(),
 								localSocket.getInputStream(), log);
 						if (outAndErr.get(0).length() > 0) {
@@ -1324,6 +1346,8 @@ public class PythonSession {
 					localSocket.close();
 				}
 			} catch (Exception ex) {
+			} finally {
+				localSocket = null;
 			}
 			try {
 				if (serverProcess != null) {
@@ -1366,19 +1390,23 @@ public class PythonSession {
 	        }
 	        this.shutdown();
 	    } catch (Exception e) {}
+	    this.localSocket = null;
 	}
 
 	public static void main(String[] args) {
 		try {
-			if (!PythonSession.initSession("python", null, null)) {
+			HopClientEnvironment.init();
+			if (!PythonSession.initSession("/home/cbuat/work/hop-cpython/hop-cpython-env/bin/python3", null, null)) {
 				System.err.print("Initialization failed!");
 				System.exit(1);
 			}
 
 			String temp = "";
 			PythonSession session = PythonSession.acquireSession(temp);
-
-			Object[] rowData = { 22, 300.22, "Hello bob", false, new Date(), new Timestamp(new Date().getTime()),
+			
+			session.setEnvName("main_test_env");
+			
+			Object[] rowData = { 22L, 300.22, "Hello bob", false, new Date(), new Timestamp(new Date().getTime()),
 					null };
 			IRowMeta rowMeta = new RowMeta();
 			rowMeta.addValueMeta(ValueMetaFactory.createValueMeta("Field1", IValueMeta.TYPE_INTEGER));

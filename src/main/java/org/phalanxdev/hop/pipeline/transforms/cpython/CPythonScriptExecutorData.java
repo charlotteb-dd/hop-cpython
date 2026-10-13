@@ -24,7 +24,6 @@ package org.phalanxdev.hop.pipeline.transforms.cpython;
 
 import org.apache.commons.vfs2.FileObject;
 
-import java.awt.font.TransformAttribute;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -268,7 +267,7 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 		Object[][] frameRows = fromPy.rows;
 		Object[][] outputRows = new Object[frameRows.length][];
 
-		if (log.isDetailed()) {
+		if (log != null && log.isDetailed()) {
 			StringBuilder colsNotDefinedInOutputMeta = new StringBuilder();
 			StringBuilder colsInOutputMetaNotPresentInFrame = new StringBuilder();
 
@@ -286,12 +285,14 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 			}
 
 			if (colsNotDefinedInOutputMeta.length() > 0) {
-				log.logDetailed(
+				if (log != null && log.isDetailed())
+					log.logDetailed(
 						BaseMessages.getString(PKG, "CPythonScriptExecutor.Message.VarsOrColsNotDefinedInOutputMeta",
 								colsNotDefinedInOutputMeta.toString()));
 			}
 			if (colsInOutputMetaNotPresentInFrame.length() > 0) {
-				log.logDebug(BaseMessages.getString(PKG, "CPythonScriptExecutor.Message.OutputFieldsNotPresentOrSet",
+				if (log != null && log.isDetailed())
+					log.logDebug(BaseMessages.getString(PKG, "CPythonScriptExecutor.Message.OutputFieldsNotPresentOrSet",
 						colsInOutputMetaNotPresentInFrame.toString()));
 			}
 		}
@@ -310,53 +311,6 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 
 		return outputRows;
 	}
-
-	/**
-	 * Thread-safe pip installer. Synchronized ensures multiple transforms do not
-	 * corrupt pip by running concurrently.
-	 */
-//	public static synchronized void installTransformLibraries(String pythonCommand, List<String> libraries,
-//			ILogChannel log) {
-//		if (libraries == null || libraries.isEmpty()) {
-//			return;
-//		}
-//
-//		try {
-//			if (log != null)
-//				log.logBasic("Checking/Installing libraries: " + String.join(", ", libraries));
-//
-//			List<String> pipCommand = new ArrayList<>();
-//			pipCommand.add(pythonCommand);
-//			pipCommand.add("-m");
-//			pipCommand.add("pip");
-//			pipCommand.add("install");
-//			pipCommand.addAll(libraries);
-//
-//			ProcessBuilder pipPb = new ProcessBuilder(pipCommand);
-//			pipPb.redirectErrorStream(true);
-//			Process pipProcess = pipPb.start();
-//
-//			// Read output to prevent freezing
-//			java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(
-//					pipProcess.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
-//			String line;
-//			while ((line = reader.readLine()) != null) {
-//				// Only log to debug so we don't spam the UI with "Requirement already
-//				// satisfied"
-//				if (log != null && log.isDebug()) {
-//					log.logDebug("[Pip Install] " + line);
-//				}
-//			}
-//
-//			int exitCode = pipProcess.waitFor();
-//			if (exitCode != 0 && log != null) {
-//				log.logError("Warning: pip install returned exit code " + exitCode);
-//			}
-//		} catch (Exception e) {
-//			if (log != null)
-//				log.logError("Failed to install Python libraries", e);
-//		}
-//	}
 
 	/**
 	 * Constructs an outgoing row in the case where more than one variable is being
@@ -580,8 +534,9 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 					throw new HopException(
 							BaseMessages.getString(PKG, "CPythonScriptExecutorData.Error.WrongNumberOfFrameNames"));
 				}
-
-				log.logDetailed(
+				
+				if (log != null)
+					log.logDetailed(
 						BaseMessages.getString(PKG, "CPythonScriptExecutorData.Message.DeterminingOutputFormat"));
 
 				Random r = new Random(1);
@@ -705,7 +660,7 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 		if (pyCommand == null) {
 			initPython(vars, log);
 		} else {
-			if (!PythonSession.initSession(pyCommand, sID, pyPath, log.isDebug(), log)) {
+			if (!PythonSession.initSession(pyCommand, sID, pyPath, log)) {
 				String pyCheckResults = PythonSession.getPythonEnvCheckResults(pyCommand, sID);
 				if (!org.apache.hop.core.util.Utils.isEmpty(pyCheckResults)) {
 					throw new HopException(
@@ -831,7 +786,8 @@ public class CPythonScriptExecutorData extends BaseTransformData implements ITra
 		try {
 			session = PythonSession.acquireSession(pyCommand, sID, requester);
 			if (session != null && !session.isSessionAlive()) {
-	            log.logBasic("Detected dead Python session during acquire. Resetting...");
+				if (log != null)
+					log.logBasic("Detected dead Python session during acquire. Resetting...");
 	            session.resetDeadSession();
 	            session = PythonSession.acquireSession(pyCommand, sID, requester); // Re-crée un serveur tout neuf
 			}

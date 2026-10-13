@@ -519,7 +519,8 @@ public class ServerUtils {
         }
       } catch ( IOException ex ) {
           if (isSocketDeath(ex)) {
-              log.logDebug("Socket death detected during script execution. Resetting Python server...");
+        	  if (log != null && log.isDebug())
+        		  log.logDebug("Socket death detected during script execution. Resetting Python server...");
               throw new HopException( "FATAL_SOCKET_DEATH: Python server connection lost.", ex );
           }
         throw new HopException( ex );
@@ -670,7 +671,8 @@ public class ServerUtils {
 
         bytes = readDelimitedFromInputStream( inputStream );
         String csv = new String( bytes, Charset.forName( "UTF-8" ) );
-        log.logDebug("csv to read :" + csv);
+        if (log != null && log.isDebug())
+        	log.logDebug("csv to read :" + csv);
         result = csvToRows( csv, convertedMeta, numRows );
       } catch ( IOException ex ) {
           if (isSocketDeath(ex)) {
