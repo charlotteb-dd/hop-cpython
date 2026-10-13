@@ -1395,7 +1395,7 @@ public class PythonSession {
 
 			if (session.checkIfPythonVariableIsSet("test")) {
 				RowMetaAndRows fromPy = session.rowsFromPythonDataFrame("test", false);
-				System.err.println("Nubmer of field metas returned: " + fromPy.rowMeta.size());
+				System.err.println("Number of field metas returned: " + fromPy.rowMeta.size());
 				System.err.println("Number of rows returned: " + fromPy.rows.length);
 				for (IValueMeta v : fromPy.rowMeta.getValueMetaList()) {
 					System.err.println("Col: " + v.getName() + " Type: " + v.getType());
