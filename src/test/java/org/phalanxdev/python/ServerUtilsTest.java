@@ -27,11 +27,30 @@ class ServerUtilsTest {
     
     private static final String MISSING_VALUE = "?";
     
-//    @BeforeEach
-//    void setUp() {
-//        // Common setup can go here if needed
-//    }
-	
+    @Test
+    void quote_DoesNotQuoteSimpleStrings() {
+        String input = "StandardString";
+        String result = ServerUtils.quote(input);
+        assertEquals("StandardString", result, "Simple strings should not be quoted");
+    }
+
+    @Test
+    void quote_QuotesStringsWithSpacesAndSpecialChars() {
+        assertEquals("'Hello World'", ServerUtils.quote("Hello World"));
+        assertEquals("''", ServerUtils.quote(""));
+        assertEquals("'Line1\\nLine2'", ServerUtils.quote("Line1\nLine2"));
+    }
+
+    @Test
+    void backQuoteChars_EscapesSpecialCharacters() {
+        String input = "Line1\nLine2\tTabbed\\Slashed\"Quoted\"";
+        String expected = "Line1\\nLine2\\tTabbed\\\\Slashed\\\"Quoted\\\"";
+        
+        String result = ServerUtils.backQuoteChars(input);
+        assertEquals(expected, result);
+    }
+    
+    
     @Test
     void csvToRows_ParsesValidCsvSuccessfully() throws IOException {
         String csv = "value1,123#||#value2,456";
@@ -41,8 +60,8 @@ class ServerUtilsTest {
         when(rowMeta.getValueMeta(0)).thenReturn(valueMeta1);
         when(rowMeta.getValueMeta(1)).thenReturn(valueMeta2);
         
-        when(valueMeta1.getType()).thenReturn(IValueMeta.TYPE_STRING); // Assuming 1 = String
-        when(valueMeta2.getType()).thenReturn(IValueMeta.TYPE_NUMBER); // Assuming 2 = number
+        when(valueMeta1.getType()).thenReturn(IValueMeta.TYPE_STRING);
+        when(valueMeta2.getType()).thenReturn(IValueMeta.TYPE_NUMBER);
 
         RowMetaAndRows result = ServerUtils.csvToRows(csv, rowMeta, numRows);
 
