@@ -147,7 +147,7 @@ public class ArrowUtils {
 	/**
 	 * Create Arrow field from Hop value metadata
 	 */
-	private static Field createArrowField(IValueMeta valueMeta) {
+	static Field createArrowField(IValueMeta valueMeta) {
 		String name = valueMeta.getName();
 		ArrowType arrowType;
 
@@ -235,7 +235,7 @@ public class ArrowUtils {
 	/**
 	 * Set value in Arrow vector
 	 */
-	private static void setVectorValue(FieldVector vector, int index, Object value, IValueMeta valueMeta)
+	static void setVectorValue(FieldVector vector, int index, Object value, IValueMeta valueMeta)
 			throws HopValueException {
 		if (value == null) {
 			vector.setNull(index);
