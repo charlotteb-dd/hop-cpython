@@ -1308,6 +1308,42 @@ public class PythonSession {
 		}
 	}
 
+	public static String resolvePythonCommand(String explicitCommand, IVariables vars) {
+	    if (explicitCommand != null && !explicitCommand.trim().isEmpty()) {
+	        if (vars != null) {
+	            explicitCommand = vars.resolve(explicitCommand);
+	        }
+	        if (new File(explicitCommand).exists()) {
+	            return explicitCommand;
+	        }
+	    }
+
+	    if (vars != null) {
+	        String hopVar = vars.getVariable("HOP_CPYTHON_COMMAND");
+	        if (hopVar != null && !hopVar.trim().isEmpty() && new File(hopVar).exists()) {
+	            return hopVar;
+	        }
+	    }
+
+	    String sysProp = System.getProperty("cpython.command");
+	    if (sysProp != null && !sysProp.trim().isEmpty() && new File(sysProp).exists()) {
+	        return sysProp;
+	    }
+
+	    boolean isWin = System.getProperty("os.name").toLowerCase().contains("win");
+	    
+	    String virtualEnv = System.getenv("VIRTUAL_ENV");
+	    if (virtualEnv != null && !virtualEnv.trim().isEmpty()) {
+	        
+	        File venvPy = new File(virtualEnv, isWin ? "Scripts/python.exe" : "bin/python");
+	        if (venvPy.exists()) {
+	            return venvPy.getAbsolutePath();
+	        }
+	    }
+
+	    return isWin ? "python" : "python3";
+	}
+	
 	/**
 	 * Shutdown the python server
 	 */
