@@ -1344,10 +1344,20 @@ public class PythonSession {
 	    return isWin ? "python" : "python3";
 	}
 	
+	public static synchronized void shutdownSession(String pythonCommand, String ownerID) {
+	    String key = (pythonCommand != null ? pythonCommand : "") + "@" + (ownerID != null ? ownerID : "default");
+	    PythonSession session = pythonServers.remove(key);
+	    if (session != null) {
+	        try {
+	            session.shutdown();
+	        } catch (Exception ignored) {}
+	    }
+	}
+	
 	/**
 	 * Shutdown the python server
 	 */
-	public void shutdown() {
+	private void shutdown() {
 		if (!shutdown) {
 			shutdown = true;
 			try {

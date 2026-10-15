@@ -654,28 +654,16 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 	
 	@Override
 	public void dispose() {
-        if (getTransformName().equals(data.serverID)) {
-        	try {
-        		PythonSession session = PythonSession.acquireSession(data.pythonCommand, data.serverID, this);
-        		if (session != null) {
-        			session.shutdown();
-        		}
-        	} catch (Exception ignored) {
-        	}
-        }
-		super.dispose();
+		if (getTransformName().equals(data.serverID) || data.serverID.startsWith(getTransformName() + "_")) {
+	        PythonSession.shutdownSession(data.pythonCommand, data.serverID);
+	    }
+	    super.dispose();
 	}
 	
 	@Override
 	public void stopRunning() throws HopException {
-		try {
-            PythonSession session = PythonSession.acquireSession(data.pythonCommand, data.serverID, this);
-            if (session != null) {
-            	session.resetDeadSession();
-            }
-        } catch (Exception ignored) {
-        }
-		super.stopRunning();	
+		PythonSession.shutdownSession(data.pythonCommand, data.serverID);
+	    super.stopRunning();
 	}
 	
 }
