@@ -31,7 +31,7 @@ class ServerUtilsTest {
     void quote_DoesNotQuoteSimpleStrings() {
         String input = "StandardString";
         String result = ServerUtils.quote(input);
-        assertEquals("StandardString", result, "Simple strings should not be quoted");
+        assertEquals("Simple strings should not be quoted", result, "StandardString");
     }
 
     @Test
