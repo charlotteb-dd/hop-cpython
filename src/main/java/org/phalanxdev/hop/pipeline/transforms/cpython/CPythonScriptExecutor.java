@@ -162,13 +162,14 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 
 			// Read output to prevent freezing
 			  List<String> processOutput = new ArrayList<>();
-			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					pipProcess.getInputStream(), StandardCharsets.UTF_8));
-			String line;
-			while ((line = reader.readLine()) != null) {
-				processOutput.add(line);
-				if (log != null && log.isDebug()) {
-					log.logDebug("[Pip Install] " + line);
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+					pipProcess.getInputStream(), StandardCharsets.UTF_8))) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					processOutput.add(line);
+					if (log != null && log.isDebug()) {
+						log.logDebug("[Pip Install] " + line);
+					}
 				}
 			}
 
@@ -176,10 +177,11 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 			if (exitCode != 0) {
 				String fullOutput = String.join("\n", processOutput);
 				if (log != null) {
-					log.logError("Warning: pip install returned exit code " + exitCode);
-			}else {
-                System.err.println("pip install failed with exit code " + exitCode + ":\n" + fullOutput);
-            }}
+					log.logError("Warning: pip install returned exit code " + exitCode + ":\n" + fullOutput);
+				}else {
+					System.err.println("pip install failed with exit code " + exitCode + ":\n" + fullOutput);
+				}
+			}
 		} catch (Exception e) {
 			if (log != null)
 				log.logError("Failed to install Python libraries", e);
@@ -189,6 +191,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 		}
 	}
 
+	@Override
 	public boolean init() {
 		if (super.init()) {
 			try {
@@ -261,8 +264,8 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 				CPythonScriptExecutorData.initPython(data.pythonCommand, data.serverID, data.pyPathEntries, this,
 						getLogChannel());
 				
-			} catch (HopException ex) {
-				logError("Initialization failed:" + ex.getMessage(), ex);
+			} catch (Exception ex) {
+				logError("Initialization failed: " + ex.getMessage(), ex);
 				return false;
 			}
 			return true;
@@ -280,7 +283,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 			IRowMeta[] infos = new IRowMeta[infoStreams.size()];
 			data.incomingRowSets = new ArrayList<IRowSet>();
 
-			if (infoStreams.size() == 0) {
+			if (infoStreams.isEmpty()) {
 				noInputRowSets = true;
 			} else {
 				String rowsToProcess = meta.getRowsToProcess();
@@ -416,6 +419,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 	        if (noInputRowSets) {
 	            session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand, data.serverID, getLogChannel(), this);
 	            session.setUseArrow(meta.isUseArrow());
+	            session.setEnvName(getTransformName());
 	            executeScriptAndProcessResult(session, meta.isContinueOnUnsetVars());
 	            return;
 	        }
@@ -433,6 +437,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 	                    if (session == null) {
 	                        session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand, data.serverID, getLogChannel(), this);
 	                        session.setUseArrow(meta.isUseArrow());
+	                        session.setEnvName(getTransformName());
 	                    }
 
 	                    String frameName = resolve(meta.getInputFrames().get(i).getFrameName());
@@ -476,6 +481,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 	            }
 
 	            session = CPythonScriptExecutorData.acquirePySession(this, data.pythonCommand, data.serverID, getLogChannel(), this);
+	            session.setEnvName(getTransformName());
 	            session.setUseArrow(meta.isUseArrow());
 
 	            if (data.batchSize == 1) {
@@ -624,7 +630,7 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 		// TODO could add another setting to allow the user to specify if the step
 		// should try to continue after a script execution error. Note that ServerUtils
 		// already logs warning messages and strips them from the error output.
-		if (!org.apache.hop.core.util.Utils.isEmpty(outAndErr.get(1))) {
+		if (!Utils.isEmpty(outAndErr.get(1))) {
 			logError("Python Error/Warning Output:\n" + outAndErr.get(1));
 			throw new HopException(outAndErr.get(1));
 		}
@@ -645,4 +651,31 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 	protected boolean checkIfPythonVariableIsSet(PythonSession session, String varName) throws HopException {
 		return session.checkIfPythonVariableIsSet(varName);
 	}
+	
+	@Override
+	public void dispose() {
+        if (getTransformName().equals(data.serverID)) {
+        	try {
+        		PythonSession session = PythonSession.acquireSession(data.pythonCommand, data.serverID, this);
+        		if (session != null) {
+        			session.shutdown();
+        		}
+        	} catch (Exception ignored) {
+        	}
+        }
+		super.dispose();
+	}
+	
+	@Override
+	public void stopRunning() throws HopException {
+		try {
+            PythonSession session = PythonSession.acquireSession(data.pythonCommand, data.serverID, this);
+            if (session != null) {
+            	session.resetDeadSession();
+            }
+        } catch (Exception ignored) {
+        }
+		super.stopRunning();	
+	}
+	
 }

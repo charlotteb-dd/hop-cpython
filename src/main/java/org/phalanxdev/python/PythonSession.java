@@ -1347,7 +1347,7 @@ public class PythonSession {
 	/**
 	 * Shutdown the python server
 	 */
-	private void shutdown() {
+	public void shutdown() {
 		if (!shutdown) {
 			shutdown = true;
 			try {
