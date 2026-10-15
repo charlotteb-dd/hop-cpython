@@ -252,9 +252,9 @@ public class CPythonScriptExecutor extends BaseTransform<CPythonScriptExecutorMe
 				data.pyPathEntries = resolve(pyPathEntries);
 				
 				if (Utils.isEmpty(serverID))
-				    data.serverID = getTransformName(); 
+				    data.serverID = getTransformName() + (getCopy() > 0 ? ("_" + getCopy()) : ""); 
 				else
-				    data.serverID = resolve(serverID);
+				    data.serverID = resolve(serverID) + (getCopy() > 0 ? ("_" + getCopy()) : "");
 				
 				if (!Utils.isEmpty(meta.getLibraries())) {
 					List<String> requiredLibs = Arrays.asList(meta.getLibraries().trim().split("\\s+"));
